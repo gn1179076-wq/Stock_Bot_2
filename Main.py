@@ -45,30 +45,66 @@ def get_channel_access_token():
 # ==========================================
 def get_stock_summary():
     print("正在分析資產狀況...")
-    fx = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X"], period="1d", progress=False)['Close'].iloc[-1]
-    rates = {"US": fx["USDTWD=X"], "HK": fx["HKDTWD=X"], "JP": fx["JPYTWD=X"], "TW": 1.0}
     
-    total_cost, total_value = 0, 0
+    # --- 修正後的匯率抓取邏輯 (增加錯誤處理) ---
+    try:
+        # 嘗試抓取匯率，縮短逾時時間
+        fx = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X"], period="1d", progress=False, timeout=10)
+        if not fx.empty:
+            last_fx = fx['Close'].iloc[-1]
+            rates = {
+                "US": float(last_fx["USDTWD=X"]),
+                "HK": float(last_fx["HKDTWD=X"]),
+                "JP": float(last_fx["JPYTWD=X"]),
+                "TW": 1.0
+            }
+        else:
+            raise ValueError("匯率資料為空")
+    except Exception as e:
+        print(f"匯率抓取失敗 ({e})，改用預設匯率...")
+        # 萬一 Yahoo 抽風，用這組預設值確保程式能跑完
+        rates = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
+    
+    total_cost, total_value = 0.0, 0.0 # 確保是 float
     details = ""
-    for item in portfolio_data:
-        stock = yf.Ticker(item['ticker'])
-        current = stock.fast_info['last_price']
-        rate = rates[item['market']]
-        c_twd = item['shares'] * item['cost_price'] * rate
-        v_twd = item['shares'] * current * rate
-        total_cost += c_twd
-        total_value += v_twd
-        roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
-        details += f"📈 {item['name']}: {roi:.1f}%\n"
-
-    profit_total = total_value - total_cost
-    roi_total = (profit_total / total_cost) * 100
     
+    for item in portfolio_data:
+        try:
+            stock = yf.Ticker(item['ticker'])
+            # 使用 fast_info 雖然快，但有時會抓到 None，改用更穩定的方式
+            price_data = stock.history(period="1d")
+            if not price_data.empty:
+                current = price_data['Close'].iloc[-1]
+            else:
+                current = item['cost_price'] # 沒抓到現價就先用成本價代替，避免 NaN
+                
+            rate = rates.get(item['market'], 1.0)
+            
+            c_twd = item['shares'] * item['cost_price'] * rate
+            v_twd = item['shares'] * current * rate
+            
+            total_cost += c_twd
+            total_value += v_twd
+            
+            roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
+            details += f"📈 {item['name']}: {roi:.1f}%\n"
+        except Exception as e:
+            print(f"處理 {item['name']} 時出錯: {e}")
+            continue # 跳過這支，繼續處理下一支
+
+    # 確保在計算總回報時不會因為 NaN 崩潰
+    if total_cost > 0:
+        profit_total = total_value - total_cost
+        roi_total = (profit_total / total_cost) * 100
+    else:
+        profit_total, roi_total = 0, 0
+    
+    # 組合訊息 (加上 int() 轉換前先確認數值有效)
     message = f"【Fiona 資產日報】\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
     message += f"------------------\n"
-    message += f"💰 總投入: ${int(total_cost):,}\n"
-    message += f"📊 總現值: ${int(total_value):,}\n"
-    message += f"🔥 總損益: ${int(profit_total):,} ({roi_total:.2f}%)\n"
+    message += f"💰 總投入: ${int(total_cost or 0):,}\n"
+    message += f"📊 總現值: ${int(total_value or 0):,}\n"
+    message += f"🔥 總損益: ${int(profit_total or 0):,} ({roi_total:.2f}%)\n"
     message += f"------------------\n" + details
     return message
 
