@@ -2,7 +2,7 @@ name: Vic_Daily_Report
 
 on:
   schedule:
-    # 這裡設定時間，UTC 00:30 等於台灣時間 08:30
+    # 每天台灣時間 17:00 執行 (UTC 09:00)
     - cron: '0 9 * * *'
   workflow_dispatch: # 讓妳可以手動執行測試
 
