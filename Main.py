@@ -2,7 +2,7 @@
 import yfinance as yf
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 # ==========================================
 # 1. 安全設定區 (請填入妳的 Channel 資訊)
@@ -100,7 +100,17 @@ def get_stock_summary():
         profit_total, roi_total = 0, 0
     
     # 組合訊息 (加上 int() 轉換前先確認數值有效)
-    message = f"【Fiona 資產日報】\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+    # --- 修正後的時區設定 ---
+    # 建立一個 UTC+8 的時區物件
+    tw_tz = timezone(timedelta(hours=8))
+    # 取得台灣現在的時間
+    now_tw = datetime.now(tw_tz)
+
+    # 將原本的 datetime.now().strftime(...) 改成：
+    current_time = now_tw.strftime('%Y-%m-%d %H:%M:%S')
+
+    # 範例應用在妳的訊息中：
+    message = f"【Fiona 資產日報】\n📅 {current_time}\n"
     message += f"------------------\n"
     message += f"💰 總投入: ${int(total_cost or 0):,}\n"
     message += f"📊 總現值: ${int(total_value or 0):,}\n"
