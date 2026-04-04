@@ -47,72 +47,76 @@ import yfinance as yf
 from datetime import datetime, timezone, timedelta
 
 def get_stock_summary():
-    print("正在分析資產狀況（包含假日相容模式）...")
+    print("正在分析資產狀況與黃金價格（包含假日相容模式）...")
     
-    # --- 1. 匯率抓取邏輯 (改用 5d 確保假日有資料) ---
+    # --- 1. 匯率與黃金抓取 (一次抓完所有資料) ---
     try:
-        # 抓取 5 天內的資料，應付週末或國定連假
-        fx = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X"], period="5d", progress=False, timeout=15)
-        if not fx.empty:
-            # 使用 ffill() 填補空值，再拿最後一筆有效收盤價
-            last_fx = fx['Close'].ffill().iloc[-1]
+        # 下載匯率與黃金期貨 (GC=F)
+        data = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X", "GC=F"], period="5d", progress=False, timeout=15)
+        if not data.empty:
+            last_data = data['Close'].ffill().iloc[-1]
             rates = {
-                "US": float(last_fx["USDTWD=X"]),
-                "HK": float(last_fx["HKDTWD=X"]),
-                "JP": float(last_fx["JPYTWD=X"]),
+                "US": float(last_data["USDTWD=X"]),
+                "HK": float(last_data["HKDTWD=X"]),
+                "JP": float(last_data["JPYTWD=X"]),
                 "TW": 1.0
             }
+            # 取得國際金價 (USD/盎司) 並換算成台灣金價 (TWD/錢)
+            gold_usd = float(last_data["GC=F"])
+            gold_twd_per_mace = (gold_usd / 31.1035 * 3.75) * rates["US"]
         else:
-            raise ValueError("Yahoo Finance 回傳空匯率表")
+            raise ValueError("Yahoo Finance 回傳資料為空")
     except Exception as e:
-        print(f"匯率抓取失敗 ({e})，使用預設匯率...")
+        print(f"數據抓取失敗 ({e})，改用預設值...")
         rates = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
+        gold_usd, gold_twd_per_mace = 0, 0
     
     total_cost, total_value = 0.0, 0.0
     details = ""
     
-    # --- 2. 投資組合計算 ---
+    # --- 2. 投資組合計算 (原本的股票邏輯) ---
     for item in portfolio_data:
         try:
             stock = yf.Ticker(item['ticker'])
-            # 關鍵修正：抓取 5d 歷史紀錄，避免股市未開盤時傳回空值
             hist = stock.history(period="5d")
             
             if not hist.empty:
-                # 取得最後一個有效的收盤價
                 current = hist['Close'].ffill().iloc[-1]
             else:
-                # 萬一真的沒資料，先用成本價撐著，不讓程式當掉
-                print(f"警告: 無法取得 {item['name']} 最新價，暫以成本計算")
                 current = item['cost_price']
                 
             rate = rates.get(item['market'], 1.0)
-            
             c_twd = item['shares'] * item['cost_price'] * rate
             v_twd = item['shares'] * current * rate
             
             total_cost += c_twd
             total_value += v_twd
             
-            # 計算該標的損益率
             roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
             details += f"📈 {item['name']}: {roi:.1f}%\n"
             
         except Exception as e:
-            print(f"處理 {item['name']} ({item['ticker']}) 時出錯: {e}")
+            print(f"處理 {item['name']} 時出錯: {e}")
             continue 
 
     # --- 3. 總結計算與訊息組合 ---
     profit_total = total_value - total_cost
     roi_total = (profit_total / total_cost) * 100 if total_cost > 0 else 0
     
-    # 設定台灣時區
     tw_tz = timezone(timedelta(hours=8))
     current_time = datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M:%S')
+
+    # 組合黃金訊息文字
+    gold_text = (
+        f"🟡 國際金價: ${gold_usd:.1f} (USD/oz)\n"
+        f"💰 台灣金價: ${int(gold_twd_per_mace):,} (TWD/錢)\n"
+    )
 
     message = (
         f"【Fiona 資產日報】\n"
         f"📅 {current_time}\n"
+        f"------------------\n"
+        f"{gold_text}"
         f"------------------\n"
         f"💰 總投入: ${int(total_cost):,}\n"
         f"📊 總現值: ${int(total_value):,}\n"
@@ -121,6 +125,7 @@ def get_stock_summary():
         f"{details}"
     )
     return message
+
 
 
 # ==========================================
