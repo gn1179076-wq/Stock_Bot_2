@@ -43,15 +43,19 @@ def get_channel_access_token():
 # ==========================================
 # 3. 抓取數據與格式化訊息 (與之前邏輯相同)
 # ==========================================
+import yfinance as yf
+from datetime import datetime, timezone, timedelta
+
 def get_stock_summary():
-    print("正在分析資產狀況...")
+    print("正在分析資產狀況（包含假日相容模式）...")
     
-    # --- 修正後的匯率抓取邏輯 (增加錯誤處理) ---
+    # --- 1. 匯率抓取邏輯 (改用 5d 確保假日有資料) ---
     try:
-        # 嘗試抓取匯率，縮短逾時時間
-        fx = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X"], period="1d", progress=False, timeout=10)
+        # 抓取 5 天內的資料，應付週末或國定連假
+        fx = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X"], period="5d", progress=False, timeout=15)
         if not fx.empty:
-            last_fx = fx['Close'].iloc[-1]
+            # 使用 ffill() 填補空值，再拿最後一筆有效收盤價
+            last_fx = fx['Close'].ffill().iloc[-1]
             rates = {
                 "US": float(last_fx["USDTWD=X"]),
                 "HK": float(last_fx["HKDTWD=X"]),
@@ -59,24 +63,28 @@ def get_stock_summary():
                 "TW": 1.0
             }
         else:
-            raise ValueError("匯率資料為空")
+            raise ValueError("Yahoo Finance 回傳空匯率表")
     except Exception as e:
-        print(f"匯率抓取失敗 ({e})，改用預設匯率...")
-        # 萬一 Yahoo 抽風，用這組預設值確保程式能跑完
+        print(f"匯率抓取失敗 ({e})，使用預設匯率...")
         rates = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
     
-    total_cost, total_value = 0.0, 0.0 # 確保是 float
+    total_cost, total_value = 0.0, 0.0
     details = ""
     
+    # --- 2. 投資組合計算 ---
     for item in portfolio_data:
         try:
             stock = yf.Ticker(item['ticker'])
-            # 使用 fast_info 雖然快，但有時會抓到 None，改用更穩定的方式
-            price_data = stock.history(period="1d")
-            if not price_data.empty:
-                current = price_data['Close'].iloc[-1]
+            # 關鍵修正：抓取 5d 歷史紀錄，避免股市未開盤時傳回空值
+            hist = stock.history(period="5d")
+            
+            if not hist.empty:
+                # 取得最後一個有效的收盤價
+                current = hist['Close'].ffill().iloc[-1]
             else:
-                current = item['cost_price'] # 沒抓到現價就先用成本價代替，避免 NaN
+                # 萬一真的沒資料，先用成本價撐著，不讓程式當掉
+                print(f"警告: 無法取得 {item['name']} 最新價，暫以成本計算")
+                current = item['cost_price']
                 
             rate = rates.get(item['market'], 1.0)
             
@@ -86,37 +94,34 @@ def get_stock_summary():
             total_cost += c_twd
             total_value += v_twd
             
+            # 計算該標的損益率
             roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
             details += f"📈 {item['name']}: {roi:.1f}%\n"
+            
         except Exception as e:
-            print(f"處理 {item['name']} 時出錯: {e}")
-            continue # 跳過這支，繼續處理下一支
+            print(f"處理 {item['name']} ({item['ticker']}) 時出錯: {e}")
+            continue 
 
-    # 確保在計算總回報時不會因為 NaN 崩潰
-    if total_cost > 0:
-        profit_total = total_value - total_cost
-        roi_total = (profit_total / total_cost) * 100
-    else:
-        profit_total, roi_total = 0, 0
+    # --- 3. 總結計算與訊息組合 ---
+    profit_total = total_value - total_cost
+    roi_total = (profit_total / total_cost) * 100 if total_cost > 0 else 0
     
-    # 組合訊息 (加上 int() 轉換前先確認數值有效)
-    # --- 修正後的時區設定 ---
-    # 建立一個 UTC+8 的時區物件
+    # 設定台灣時區
     tw_tz = timezone(timedelta(hours=8))
-    # 取得台灣現在的時間
-    now_tw = datetime.now(tw_tz)
+    current_time = datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M:%S')
 
-    # 將原本的 datetime.now().strftime(...) 改成：
-    current_time = now_tw.strftime('%Y-%m-%d %H:%M:%S')
-
-    # 範例應用在妳的訊息中：
-    message = f"【Fiona 資產日報】\n📅 {current_time}\n"
-    message += f"------------------\n"
-    message += f"💰 總投入: ${int(total_cost or 0):,}\n"
-    message += f"📊 總現值: ${int(total_value or 0):,}\n"
-    message += f"🔥 總損益: ${int(profit_total or 0):,} ({roi_total:.2f}%)\n"
-    message += f"------------------\n" + details
+    message = (
+        f"【Fiona 資產日報】\n"
+        f"📅 {current_time}\n"
+        f"------------------\n"
+        f"💰 總投入: ${int(total_cost):,}\n"
+        f"📊 總現值: ${int(total_value):,}\n"
+        f"🔥 總損益: ${int(profit_total):,} ({roi_total:.2f}%)\n"
+        f"------------------\n"
+        f"{details}"
+    )
     return message
+
 
 # ==========================================
 # 4. 發送 LINE 訊息
