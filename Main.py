@@ -78,7 +78,7 @@ def get_stock_summary():
             roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
             
             # --- 顯示：購入價 → 現價 (漲跌符號 損益%) ---
-            trend_icon = "🟢" if roi >= 0 else "🔴"
+            trend_icon = "🔴" if roi >= 0 else "🟢"
             symbol = {"US": "$", "HK": "HK$", "JP": "¥", "TW": "$"}.get(item['market'], "$")
             cost_p = item['cost_price']
             
@@ -90,7 +90,7 @@ def get_stock_summary():
 
     profit_total = total_value - total_cost
     roi_total = (profit_total / total_cost) * 100 if total_cost > 0 else 0
-    total_trend_icon = "🟢" if profit_total >= 0 else "🔴"
+    total_trend_icon = "🔴" if profit_total >= 0 else "🟢"
     
     tw_tz = timezone(timedelta(hours=8))
     current_time = datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M:%S')
