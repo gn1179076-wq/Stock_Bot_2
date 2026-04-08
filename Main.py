@@ -5,8 +5,6 @@ import os
 import math
 from datetime import datetime, timedelta, timezone
 
-# 關閉 yfinance 快取，防止 database is locked 錯誤
-yf.set_tz_cache(False)
 
 # ==========================================
 # 1. 安全設定區
