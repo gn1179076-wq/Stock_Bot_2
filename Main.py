@@ -40,14 +40,11 @@ def get_channel_access_token():
 def get_stock_summary():
     print("正在分析資產狀況與黃金價格...")
     
-    # 預設值與初始化
     rates = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
     gold_usd = 0.0
     gold_twd_per_mace = 0.0
     
-    # --- 1. 匯率與黃金抓取 ---
     try:
-        # threads=False 可減少 database is locked 錯誤
         data = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X", "GC=F"], period="5d", progress=False, timeout=15, threads=False)
         if not data.empty:
             last_data = data['Close'].ffill().iloc[-1]
@@ -65,7 +62,6 @@ def get_stock_summary():
     total_cost, total_value = 0.0, 0.0
     details = ""
     
-    # --- 2. 投資組合計算 (優化輸出格式) ---
     for item in portfolio_data:
         try:
             stock = yf.Ticker(item['ticker'])
@@ -81,21 +77,20 @@ def get_stock_summary():
             
             roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
             
-            # --- 第一個優化效果：漲跌圖標與貨幣符號 ---
+            # --- 顯示：購入價 → 現價 (漲跌符號 損益%) ---
             trend_icon = "🟢" if roi >= 0 else "🔴"
             symbol = {"US": "$", "HK": "HK$", "JP": "¥", "TW": "$"}.get(item['market'], "$")
+            cost_p = item['cost_price']
             
-            # 格式：📈 名稱
-            #      現價 (漲跌 損益%)
-            details += f"📈 {item['name']}\n   {symbol}{current:,.2f} ({trend_icon} {roi:+.1f}%)\n"
+            details += f"📈 {item['name']}\n   {symbol}{cost_p:,.2f} → {symbol}{current:,.2f} ({trend_icon} {roi:+.1f}%)\n"
             
         except Exception as e:
             print(f"處理 {item['name']} 時出錯: {e}")
             continue 
 
-    # --- 3. 總結計算與訊息組合 ---
     profit_total = total_value - total_cost
     roi_total = (profit_total / total_cost) * 100 if total_cost > 0 else 0
+    total_trend_icon = "🟢" if profit_total >= 0 else "🔴"
     
     tw_tz = timezone(timedelta(hours=8))
     current_time = datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M:%S')
@@ -110,11 +105,12 @@ def get_stock_summary():
         f"------------------\n"
         f"💰 總投入: ${int(total_cost):,}\n"
         f"📊 總現值: ${int(total_value):,}\n"
-        f"🔥 總損益: ${int(profit_total):,} ({roi_total:+.2f}%)\n"
+        f"🔥 總損益: ${int(profit_total):,} ({total_trend_icon} {roi_total:+.2f}%)\n"
         f"------------------\n"
         f"{details}"
     )
     return message
+
 def push_message(token, text):
     url = "https://api.line.me/v2/bot/message/push"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
