@@ -2,27 +2,31 @@ name: Vic_Daily_Report
 
 on:
   schedule:
-    # 每天台灣時間 17:00 執行 (UTC 09:00)
+    # 每天台灣時間 17:00 執行 (UTC 09:17) 
+    # 註：GitHub Actions 的 cron 是 UTC，所以台灣 17:17 是 09:17
     - cron: '17 9 * * *'
-  workflow_dispatch: # 讓妳可以手動執行測試
+  workflow_dispatch: # 讓你手動執行測試
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 檢查程式碼
-        # 升級到 v4 以上版本以支援新版 Node.js
         uses: actions/checkout@v4
 
       - name: 設定 Python 環境
-        # 升級到 v5 以上版本以支援新版 Node.js
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # 順便升級 Python 到更穩定的 3.11
+          python-version: '3.11'
 
       - name: 安裝必要套件
         run: |
           pip install -r requirements.txt
 
-      - name: 執行報表程式
-        run: python Main.py
+      - name: 執行報表程式 (含自動重試機制)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10     # 總執行超時時間
+          max_attempts: 3          # 失敗後最多嘗試 3 次
+          retry_wait_seconds: 600  # 失敗後等待 60 秒再試，避開 API 限制
+          command: python Main.py
