@@ -10,11 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
-    # 1. 在此設定全域環境變數，讓底下的所有 Python 程式都能抓到 Secrets
-    env:
-      LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
-      LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
-      LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+    # 給予寫入權限，確保最後一個步驟 git push 能成功
+    permissions:
+      contents: write
 
     steps:
       - name: 檢查程式碼
@@ -29,16 +27,7 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      # 2. 執行「資產日報」 (Main.py) - 若不需要可自行註解
-      #- name: 執行「資產日報」 (Main.py)
-      #  uses: nick-fields/retry@v3
-      #  with:
-      #    timeout_minutes: 10
-      #    max_attempts: 3
-      #    retry_wait_seconds: 60
-      #    command: python Main.py
-
-      # 3. 執行「保固追蹤」 (warranty.py)
+      # 執行「保固追蹤」 (warranty.py)
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
         with:
@@ -46,8 +35,13 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           command: python warranty.py
+        # 關鍵修正：將 env 放在 retry 步驟內，解決 405 Token 獲取失敗問題
+        env:
+          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
+          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
-      # 4. 儲存 HTML 到 Artifacts (ZIP 檔案備份)
+      # 儲存 HTML 到 Artifacts (ZIP 檔案備份)
       - name: 儲存保固報表到 Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -55,8 +49,7 @@ jobs:
           path: warranty_report.html
           retention-days: 7
 
-      # 5. 將產出的 HTML 存回檔案庫 (為了讓 GitHub Pages 網址生效)
-      # 注意：這會讓你的 GitHub 檔案列表看到更新後的 html
+      # 將產出的 HTML 存回檔案庫 (為了讓 GitHub Pages 網址生效)
       - name: 將 HTML 自動存回檔案庫
         run: |
           git config --local user.email "action@github.com"
