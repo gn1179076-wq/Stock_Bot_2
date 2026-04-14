@@ -14,7 +14,7 @@ def get_channel_access_token():
         print("❌ 錯誤：LINE_CHANNEL_ID 或 SECRET 為空")
         return None
 
-    # 修正：正確的 Token 獲取網址
+    # 正確的 Token 獲取網址
     url = "https://line.me"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     payload = {
@@ -33,7 +33,7 @@ def get_channel_access_token():
         print(f"❌ Token 請求異常: {e}")
         return None
 
-# 2. 家務資產清單
+# 2. 家務資產清單 (小米日期設為 2025 以觸發紅燈)
 home_assets = [
     {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
     {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
@@ -74,9 +74,8 @@ def process_data():
             print(f"跳過項目 {item.get('name')}: {e}")
             continue
 
-    # 樣式定義
+    # HTML 樣式
     style = "body{{font-family:sans-serif;background:#f0f2f5;padding:20px}} .card{{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto}} .title{{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db}} table{{width:100%;border-collapse:collapse}} th,td{{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px}} th{{background:#f8f9fa;color:#95a5a6;font-size:12px}} .badge{{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold}} .safe{{background:#eafaf1;color:#27ae60}} .warning{{background:#fef5e7;color:#f39c12}} .danger{{background:#fdedec;color:#e74c3c}} .expired{{background:#f4f6f7;color:#95a5a6}}"
-    
     html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h if app_h else '<tr><td colspan=6>暫無資料</td></tr>'}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h if cons_h else '<tr><td colspan=6>暫無資料</td></tr>'}</tbody></table></div></body></html>"
 
     with open("warranty_report.html", "w", encoding="utf-8") as f:
@@ -90,11 +89,11 @@ def push_message(token, text):
         print("❌ 缺少 Token 或 User_ID")
         return
 
-    # 修正：正確的 LINE Push API 網址
+    # 正確的發送網址
     url = "https://line.me"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
     
-    # 修正：完整的 payload 語法
+    # 修正語法錯誤：補齊 messages 清單內容
     payload = {
         "to": user_id,
         "messages":
@@ -121,7 +120,7 @@ if __name__ == "__main__":
             f"------------------\n"
             f"🔥 即將到期提醒：\n{soon_msg}\n"
             f"------------------\n"
-            f"📦 全清單快覽：\n{full_list_str}" # 修正變數名稱
+            f"📦 全清單快覽：\n{full_l}"
             f"------------------"
         )
         push_message(token, msg_text)
