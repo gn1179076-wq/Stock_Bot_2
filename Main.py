@@ -3,6 +3,7 @@ import yfinance as yf
 import requests
 import os
 import math
+import json
 from datetime import datetime, timedelta, timezone
 
 
@@ -14,16 +15,18 @@ CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 USER_ID = os.getenv("LINE_USER_ID")
 REPORT_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
 
-portfolio_data = [
-    {"name": "0056 元大高股息", "ticker": "0056.TW", "shares": 2000, "cost_price": 32.38, "market": "TW"},
-    {"name": "2356 英業達", "ticker": "2356.TW", "shares": 34000, "cost_price": 48.82, "market": "TW"},
-    {"name": "2376 技嘉", "ticker": "2376.TW", "shares": 2000, "cost_price": 294.0, "market": "TW"},
-    {"name": "2881 富邦金", "ticker": "2881.TW", "shares": 3558, "cost_price": 56.16, "market": "TW"},
-    {"name": "2892 第一金", "ticker": "2892.TW", "shares": 28667, "cost_price": 17.51, "market": "TW"},
-    {"name": "TSLA Tesla", "ticker": "TSLA", "shares": 45, "cost_price": 330.0, "market": "US"},
-    {"name": "3988 中國銀行", "ticker": "3988.HK", "shares": 156000, "cost_price": 3.232, "market": "HK"},
-    {"name": "8031 三井物產", "ticker": "8031.T", "shares": 800, "cost_price": 3591.0, "market": "JP"},
-]
+PORTFOLIO_FILE = "portfolio.json"
+
+def load_portfolio():
+    try:
+        with open(PORTFOLIO_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"❌ 找不到持股檔案：{PORTFOLIO_FILE}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON 格式錯誤：{e}")
+        return []
 
 def get_channel_access_token():
     url = "https://api.line.me/v2/oauth/accessToken"
@@ -44,6 +47,7 @@ def get_channel_access_token():
 # ==========================================
 def get_stock_summary():
     print("正在分析資產狀況與黃金價格...")
+    portfolio_data = load_portfolio()
 
     rates = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
     gold_usd = 0.0
