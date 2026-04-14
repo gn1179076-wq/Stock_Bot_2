@@ -55,6 +55,13 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          # 確保檔案存在，如果檔案沒變也強制更新時間戳
+          touch warranty_report.html
           git add warranty_report.html
-          git commit -m "自動更新保固報表 [skip ci]" || exit 0
-          git push
+          # 如果沒有變化就不 commit，但顯示訊息
+          if git diff --staged --quiet; then
+            echo "報表內容無變動，跳過更新。"
+          else
+            git commit -m "自動更新保固報表 [skip ci]"
+            git push
+          fi
