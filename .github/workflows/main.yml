@@ -2,14 +2,15 @@ name: Vic_Daily_Report
 
 on:
   schedule:
-    # 每天台灣時間 17:17 執行 (UTC 09:17) 
+    # 每天台灣時間 17:17 執行 (UTC 09:17)
     - cron: '17 9 * * *'
-  workflow_dispatch: # 手動執行測試
+  workflow_dispatch: # 允許手動執行測試
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
+    # 1. 在此設定全域環境變數，讓底下的所有 Python 程式都能抓到 Secrets
     env:
       LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
       LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
@@ -28,14 +29,16 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      # 2. 執行「資產日報」 (Main.py) - 若不需要可自行註解
       - name: 執行「資產日報」 (Main.py)
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 10
-         max_attempts: 3
+          max_attempts: 3
           retry_wait_seconds: 60
           command: python Main.py
 
+      # 3. 執行「保固追蹤」 (warranty.py)
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
         with:
@@ -44,10 +47,20 @@ jobs:
           retry_wait_seconds: 60
           command: python warranty.py
 
-      # --- 新增：將產出的 HTML 存為 Artifact ---
-      - name: 儲存保固報表 HTML
+      # 4. 儲存 HTML 到 Artifacts (ZIP 檔案備份)
+      - name: 儲存保固報表到 Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Warranty-Report-${{ github.run_id }}  # 檔案包名稱，加上 ID 方便區分
-          path: warranty_report.html                  # 程式產出的檔案路徑
-          retention-days: 7                           # 檔案保留天數（預設 90 天，建議改短一點）
+          name: Warranty-Report
+          path: warranty_report.html
+          retention-days: 7
+
+      # 5. 將產出的 HTML 存回檔案庫 (為了讓 GitHub Pages 網址生效)
+      # 注意：這會讓你的 GitHub 檔案列表看到更新後的 html
+      - name: 將 HTML 自動存回檔案庫
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add warranty_report.html
+          git commit -m "自動更新保固報表 [skip ci]" || exit 0
+          git push
