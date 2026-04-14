@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import requests
 import os
+import json
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
@@ -37,7 +38,7 @@ def get_channel_access_token():
 # 2. 讀取家務資產清單 (從 JSON 檔案)
 # ==========================================
 ASSETS_FILE = "home_assets.json"
- 
+
 def load_assets():
     try:
         with open(ASSETS_FILE, "r", encoding="utf-8") as f:
@@ -48,7 +49,6 @@ def load_assets():
     except json.JSONDecodeError as e:
         print(f"❌ JSON 格式錯誤：{e}")
         return []
- 
 
 
 # ==========================================
@@ -57,6 +57,7 @@ def load_assets():
 def process_data():
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    home_assets = load_assets()
     app_rows, cons_rows, soon_list, expired_list, full_list_str = "", "", [], [], ""
 
     # 統計數據
