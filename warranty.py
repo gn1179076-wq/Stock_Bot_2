@@ -4,28 +4,10 @@ import os
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 安全設定 (與 Main.py 完全一致)
+# 1. 安全設定 (動態讀取環境變數)
 # ==========================================
-# 建議在函數內讀取 os.getenv 確保 GitHub Action 環境變數能即時抓取
-def get_env_variable(key):
-    value = os.getenv(key)
-    if not value:
-        print(f"⚠️ 警告：找不到環境變數 {key}")
-    return value
-
-# 2. 家務資產清單
-home_assets = [
-    {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
-    {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
-    {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
-    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2025-03-01", "warranty_months": 6},
-    {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
-    {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
-    {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
-]
-
 def get_channel_access_token():
-    # 每次執行時動態抓取，避免全域變數載入失敗
+    # 每次執行時動態抓取，確保抓到 GitHub Actions 注入的 Secrets
     cid = os.getenv("LINE_CHANNEL_ID")
     csecret = os.getenv("LINE_CHANNEL_SECRET")
     
@@ -41,7 +23,6 @@ def get_channel_access_token():
         "client_secret": csecret
     }
     try:
-        # 完全比照股票腳本的 requests 寫法
         response = requests.post(url, headers=headers, data=payload, timeout=15)
         if response.status_code == 200:
             return response.json().get("access_token")
@@ -51,6 +32,17 @@ def get_channel_access_token():
     except Exception as e:
         print(f"❌ Token 請求異常: {e}")
         return None
+
+# 2. 家務資產清單
+home_assets = [
+    {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
+    {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
+    {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
+    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2025-03-01", "warranty_months": 6},
+    {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
+    {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
+    {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
+]
 
 def process_data():
     tz = timezone(timedelta(hours=8))
@@ -102,7 +94,12 @@ def push_message(token, text):
 
     url = "https://line.me"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
-    payload = {"to": user_id, "messages":}
+    
+    # 修正後的 payload
+    payload = {
+        "to": user_id,
+        "messages":
+    }
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=15)
         if res.status_code == 200:
@@ -118,7 +115,7 @@ if __name__ == "__main__":
     # 1. 處理資料
     soon_l, full_l, d_s = process_data()
     
-    # 2. 獲取 Token (內部包含偵錯印出)
+    # 2. 獲取 Token
     token = get_channel_access_token()
     
     if token:
@@ -133,5 +130,6 @@ if __name__ == "__main__":
             f"------------------"
         )
         push_message(token, msg_text)
+        print("✅ 任務執行完畢")
     else:
         print("❌ 任務中斷：無法取得 LINE Token。")
