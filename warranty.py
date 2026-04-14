@@ -3,9 +3,7 @@ import requests
 import os
 from datetime import datetime, timedelta, timezone
 
-# ==========================================
-# 1. 安全設定區 (與 Stock_Bot 共用 Secrets)
-# ==========================================
+# 1. 安全設定
 CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 USER_ID = os.getenv("LINE_USER_ID")
@@ -15,24 +13,24 @@ home_assets = [
     {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
     {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
     {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
-    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2025-03-01", "warranty_months": 6},
+    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2026-03-01", "warranty_months": 6},
     {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
 ]
 
 def get_channel_access_token():
+    # 這是 LINE 最標準的 Token 獲取方式
     url = "https://line.me"
-    # LINE 規定獲取 Token 必須使用表單格式 (x-www-form-urlencoded)
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     payload = {
         "grant_type": "client_credentials",
-        "client_id": CHANNEL_ID,
-        "client_secret": CHANNEL_SECRET
+        "client_id": str(CHANNEL_ID),
+        "client_secret": str(CHANNEL_SECRET)
     }
     try:
-        # 使用 data= 確保以表單形式發送，避免 405 錯誤
-        response = requests.post(url, headers=headers, data=payload, timeout=15)
+        # 移除 timeout 測試，完全比照股票版
+        response = requests.post(url, headers=headers, data=payload)
         if response.status_code == 200:
             return response.json().get("access_token")
         else:
@@ -45,8 +43,7 @@ def get_channel_access_token():
 def process_data():
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    app_h, cons_h, soon_list = "", "", []
-    full_list_str = ""
+    app_h, cons_h, soon_list, full_list_str = "", "", [], ""
 
     for item in home_assets:
         p_d = datetime.strptime(item['purchase_date'], "%Y-%m-%d").replace(tzinfo=tz)
@@ -68,29 +65,19 @@ def process_data():
         else: app_h += row
         full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
 
-    # 生成 HTML 報表內容
+    # 生成 HTML 報表
     style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
     html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
+    with open("warranty_report.html", "w", encoding="utf-8") as f: f.write(html_template)
     
-    with open("warranty_report.html", "w", encoding="utf-8") as f: 
-        f.write(html_template)
-    
-    date_str = today.strftime('%Y-%m-%d')
-    return soon_list, full_list_str, date_str
+    return soon_list, full_list_str, today.strftime('%Y-%m-%d')
 
 def push_message(token, text):
     url = "https://line.me"
-    headers = {
-        "Content-Type": "application/json", 
-        "Authorization": f"Bearer {token}"
-    }
-    payload = {
-        "to": USER_ID, 
-        "messages": [{"type": "text", "text": text}]
-    }
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
+    payload = {"to": USER_ID, "messages": [{"type": "text", "text": text}]}
     try:
-        # 發送訊息使用 json= 格式
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
             print("✅ LINE 訊息發送成功！")
         else:
@@ -102,24 +89,20 @@ if __name__ == "__main__":
     print("🚀 啟動資產檢查任務...")
     soon_l, full_l, d_s = process_data()
     
-    # 組合訊息文字 (確保不包含反斜線語法錯誤)
+    # 處理訊息字串
     soon_msg = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
-    
     msg_text = (
         f"【Fiona 家務資產報表 {d_s}】\n"
         f"------------------\n"
-        f"🔥 即將到期提醒：\n"
-        f"{soon_msg}\n"
+        f"🔥 即將到期提醒：\n{soon_msg}\n"
         f"------------------\n"
         f"📦 全清單快覽：\n{full_l}"
         f"------------------\n"
-        f"📊 詳細報表已產生於 Artifacts"
     )
     
     token = get_channel_access_token()
     if token:
         push_message(token, msg_text)
     else:
-        print("❌ 錯誤：無法取得存取憑證，請檢查頻道 ID 與金鑰設定。")
-    
+        print("❌ 權限不足，無法獲取 Token，請確認 Secrets 設定。")
     print("✅ 任務執行完畢")
