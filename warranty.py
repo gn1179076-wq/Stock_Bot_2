@@ -112,8 +112,13 @@ if __name__ == "__main__":
     
     token = get_channel_access_token()
     if token:
+        # --- 加上這行 Debug ---
+        print(f"DEBUG: USER_ID={USER_ID}") 
+        # ---------------------
+        
         soon_msg = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
         msg_text = f"【Fiona 家務資產報表 {d_s}】\n" + "-"*15 + f"\n🔥 即將到期提醒：\n{soon_msg}\n" + "-"*15 + f"\n📦 全清單快覽：\n{full_l}" + "-"*15
+        
         push_message(token, msg_text)
     else:
         print("❌ 獲取 Token 失敗")
