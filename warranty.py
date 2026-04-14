@@ -34,17 +34,21 @@ def get_channel_access_token():
 
 
 # ==========================================
-# 2. 家務資產清單
+# 2. 讀取家務資產清單 (從 JSON 檔案)
 # ==========================================
-home_assets = [
-    {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
-    {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
-    {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
-    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2026-03-01", "warranty_months": 6},
-    {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
-    {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
-    {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
-]
+ASSETS_FILE = "home_assets.json"
+ 
+def load_assets():
+    try:
+        with open(ASSETS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"❌ 找不到資產檔案：{ASSETS_FILE}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON 格式錯誤：{e}")
+        return []
+ 
 
 
 # ==========================================
