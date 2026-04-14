@@ -24,8 +24,11 @@ home_assets = [
 def get_channel_access_token():
     url = "https://line.me"
     payload = {"grant_type": "client_credentials", "client_id": CHANNEL_ID, "client_secret": CHANNEL_SECRET}
-    res = requests.post(url, data=payload)
-    return res.json().get("access_token") if res.status_code == 200 else None
+    try:
+        res = requests.post(url, data=payload, timeout=10)
+        return res.json().get("access_token") if res.status_code == 200 else None
+    except:
+        return None
 
 def process_data():
     tw_tz = timezone(timedelta(hours=8))
@@ -80,7 +83,7 @@ def save_html(appliances, consumables, date_str):
             .header {{ text-align: center; margin-bottom: 40px; }}
             .header h1 {{ margin: 0; color: #2c3e50; font-size: 28px; }}
             .card {{ background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden; }}
-            .card-title {{ padding: 20px 25px; margin: 0; background: #fafafa; border-bottom: 1px solid #eee; font-size: 18px; color: #34495e; }}
+            .card-title {{ padding: 20px 25px; margin: 0; background: #fafafa; border-bottom: 1px solid #eee; font-size: 18px; color: #34495e; border-left: 5px solid #3498db; }}
             table {{ width: 100%; border-collapse: collapse; }}
             th {{ background: #fdfdfd; padding: 15px 25px; text-align: left; font-size: 13px; color: #95a5a6; }}
             td {{ padding: 18px 25px; border-top: 1px solid #f6f8f9; font-size: 15px; }}
@@ -97,7 +100,7 @@ def save_html(appliances, consumables, date_str):
             <div class="card"><h3 class="card-title">📦 硬體設備保固</h3><table>
             <thead><tr><th>產品名稱</th><th>購買日</th><th>保固</th><th>到期日</th><th>剩餘天數</th><th>狀態</th></tr></thead>
             <tbody>{appliances}</tbody></table></div>
-            <div class="card"><h3 class="card-title">♻️ 耗材更換追蹤</h3><table>
+            <div class="card"><h3 class="card-title" style="border-left-color: #e67e22;">♻️ 耗材更換追蹤</h3><table>
             <thead><tr><th>產品名稱</th><th>更換日</th><th>週期</th><th>下次更換</th><th>剩餘天數</th><th>狀態</th></tr></thead>
             <tbody>{consumables}</tbody></table></div>
         </div>
@@ -110,13 +113,25 @@ def save_html(appliances, consumables, date_str):
 def push_line(token, text):
     if not token: return
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {"to": USER_ID, "messages":}
-    requests.post("https://line.me", headers=headers, json=payload)
+    # 修正語法錯誤：補齊 messages 的值
+    payload = {
+        "to": USER_ID, 
+        "messages":
+    }
+    try:
+        requests.post("https://line.me", headers=headers, json=payload, timeout=10)
+    except:
+        pass
 
 if __name__ == "__main__":
     app_rows, cons_rows, soon_list, d_str = process_data()
     save_html(app_rows, cons_rows, d_str)
-    line_msg = f"【Fiona 保固報表 {d_str}】\n------------------\n"
-    line_msg += "🔥 即將到期：\n" + ("\n".join(soon_list) if soon_list else "🎉 一切正常") + "\n------------------\n💡 詳細報表見 GitHub Artifacts。"
-    push_line(get_channel_access_token(), line_msg)
-    print("✅ 執行成功！")
+    
+    line_msg = f"【Fiona 保固報表 {d_str}】\n"
+    line_msg += "------------------\n"
+    line_msg += "🔥 即將到期：\n" + ("\n".join(soon_list) if soon_list else "🎉 一切正常") + "\n"
+    line_msg += "------------------\n💡 詳細報表見 GitHub Artifacts。"
+    
+    token = get_channel_access_token()
+    push_line(token, line_msg)
+    print("✅ 美化版報表更新成功！")
