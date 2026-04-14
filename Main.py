@@ -9,9 +9,10 @@ from datetime import datetime, timedelta, timezone
 # ==========================================
 # 1. 安全設定區
 # ==========================================
-CHANNEL_ID = "2009680257"
-CHANNEL_SECRET = "5d823cc03726e22b534554f2ed5e8884"
-USER_ID = "U50164ea486d3fe2bd2c77d8b8633b0d0"
+# 1. 安全讀取 (從 GitHub Secrets 抓取)
+CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
+CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+USER_ID = os.getenv("LINE_USER_ID")
 
 portfolio_data = [
     {"name": "0056 元大高股息", "ticker": "0056.TW", "shares": 2000, "cost_price": 32.38, "market": "TW"},
