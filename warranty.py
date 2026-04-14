@@ -366,6 +366,7 @@ if __name__ == "__main__":
             msg_text = "\n------------------\n".join(parts)
             push_message(token, msg_text)
         else:
-            print("🎉 全部正常，不發送 LINE 通知")
+            msg_text = f"【Fiona 家務提醒 {d_s}】\n🎉 所有設備及耗材狀態正常！"
+            push_message(token, msg_text)
     else:
         print("❌ 任務失敗：無法取得 Token")
