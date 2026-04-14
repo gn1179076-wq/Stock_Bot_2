@@ -23,6 +23,7 @@ home_assets = [
 
 def get_channel_access_token():
     url = "https://line.me"
+    # LINE 規定獲取 Token 必須使用表單格式 (x-www-form-urlencoded)
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     payload = {
         "grant_type": "client_credentials",
@@ -30,11 +31,12 @@ def get_channel_access_token():
         "client_secret": CHANNEL_SECRET
     }
     try:
+        # 使用 data= 確保以表單形式發送，避免 405 錯誤
         response = requests.post(url, headers=headers, data=payload, timeout=15)
         if response.status_code == 200:
             return response.json().get("access_token")
         else:
-            print(f"❌ Token 獲取失敗: {response.text}")
+            print(f"❌ Token 獲取失敗 (HTTP {response.status_code}): {response.text}")
             return None
     except Exception as e:
         print(f"❌ Token 請求異常: {e}")
@@ -66,7 +68,7 @@ def process_data():
         else: app_h += row
         full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
 
-    # 生成 HTML 
+    # 生成 HTML 報表內容
     style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
     html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
     
@@ -87,6 +89,7 @@ def push_message(token, text):
         "messages": [{"type": "text", "text": text}]
     }
     try:
+        # 發送訊息使用 json= 格式
         response = requests.post(url, headers=headers, json=payload, timeout=15)
         if response.status_code == 200:
             print("✅ LINE 訊息發送成功！")
@@ -99,24 +102,24 @@ if __name__ == "__main__":
     print("🚀 啟動資產檢查任務...")
     soon_l, full_l, d_s = process_data()
     
-    # 修正語法：將 join 移到 f-string 外面以避免反斜線錯誤
-    soon_txt = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
+    # 組合訊息文字 (確保不包含反斜線語法錯誤)
+    soon_msg = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
     
     msg_text = (
         f"【Fiona 家務資產報表 {d_s}】\n"
         f"------------------\n"
         f"🔥 即將到期提醒：\n"
-        f"{soon_txt}\n"
+        f"{soon_msg}\n"
         f"------------------\n"
         f"📦 全清單快覽：\n{full_l}"
         f"------------------\n"
-        f"📊 詳細報表請見 GitHub Artifacts"
+        f"📊 詳細報表已產生於 Artifacts"
     )
     
     token = get_channel_access_token()
     if token:
         push_message(token, msg_text)
     else:
-        print("❌ 權限不足，無法發送訊息")
+        print("❌ 錯誤：無法取得存取憑證，請檢查頻道 ID 與金鑰設定。")
     
     print("✅ 任務執行完畢")
