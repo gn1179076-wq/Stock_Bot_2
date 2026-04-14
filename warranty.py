@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 安全設定區 (請確保 GitHub Secrets 名稱正確)
+# 1. 安全設定區 (與 Stock_Bot 共用 Secrets)
 # ==========================================
 CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
@@ -34,10 +34,10 @@ def get_channel_access_token():
         if response.status_code == 200:
             return response.json().get("access_token")
         else:
-            print(f"❌ 無法獲取 Token: {response.text}")
+            print(f"❌ Token 獲取失敗: {response.text}")
             return None
     except Exception as e:
-        print(f"❌ Token 請求出錯: {e}")
+        print(f"❌ Token 請求異常: {e}")
         return None
 
 def process_data():
@@ -66,7 +66,7 @@ def process_data():
         else: app_h += row
         full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
 
-    # 生成 HTML 報表
+    # 生成 HTML 
     style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
     html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
     
@@ -77,8 +77,7 @@ def process_data():
     return soon_list, full_list_str, date_str
 
 def push_message(token, text):
-    # 完全比照股票腳本的發送邏輯
-    url = "https://api.line.me/v2/bot/message/push"
+    url = "https://line.me"
     headers = {
         "Content-Type": "application/json", 
         "Authorization": f"Bearer {token}"
@@ -92,29 +91,32 @@ def push_message(token, text):
         if response.status_code == 200:
             print("✅ LINE 訊息發送成功！")
         else:
-            print(f"❌ LINE 發送失敗，狀態碼: {response.status_code}, 原因: {response.text}")
+            print(f"❌ LINE 發送失敗: {response.text}")
     except Exception as e:
-        print(f"❌ 網路連線錯誤: {e}")
+        print(f"❌ 網路錯誤: {e}")
 
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務...")
     soon_l, full_l, d_s = process_data()
     
-    # 組合訊息文字 (移除可能導致錯誤的特殊網址)
+    # 修正語法：將 join 移到 f-string 外面以避免反斜線錯誤
+    soon_txt = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
+    
     msg_text = (
         f"【Fiona 家務資產報表 {d_s}】\n"
         f"------------------\n"
         f"🔥 即將到期提醒：\n"
-        f"{'\n'.join(soon_l) if soon_l else '🎉 目前狀態正常'}\n"
+        f"{soon_txt}\n"
         f"------------------\n"
         f"📦 全清單快覽：\n{full_l}"
-        f"------------------"
+        f"------------------\n"
+        f"📊 詳細報表請見 GitHub Artifacts"
     )
     
     token = get_channel_access_token()
     if token:
         push_message(token, msg_text)
     else:
-        print("❌ 無法取得 Token，請檢查 CHANNEL_ID 和 CHANNEL_SECRET")
+        print("❌ 權限不足，無法發送訊息")
     
     print("✅ 任務執行完畢")
