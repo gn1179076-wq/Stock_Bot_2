@@ -1,15 +1,20 @@
 name: Vic_Daily_Report
-
 on:
   schedule:
     - cron: '17 9 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: 檢查程式碼
@@ -31,13 +36,12 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           command: python Main.py
-        # 必須寫在 step 內，retry 才抓得到
         env:
           LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
           LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
-      # 執行「保固追蹤」 (warranty.py)
+      # 執行「保固追蹤」 (warranty.py) → 產生 docs/index.html
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
         with:
@@ -45,23 +49,20 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           command: python warranty.py
-        # 必須寫在 step 內，retry 才抓得到
         env:
           LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
           LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
-      - name: 將 HTML 自動存回檔案庫
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          # 確保檔案存在，如果檔案沒變也強制更新時間戳
-          touch warranty_report.html
-          git add warranty_report.html
-          # 如果沒有變化就不 commit，但顯示訊息
-          if git diff --staged --quiet; then
-            echo "報表內容無變動，跳過更新。"
-          else
-            git commit -m "自動更新保固報表 [skip ci]"
-            git push
-          fi
+      # 部署 HTML 到 GitHub Pages（取代舊的 git commit 方式）
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
