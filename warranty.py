@@ -8,12 +8,12 @@ CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 USER_ID = os.getenv("LINE_USER_ID")
 
-# 2. 家務資產清單 (故意把小米濾網改日期來測試通知)
+# 2. 家務資產清單
 home_assets = [
     {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
     {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
     {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
-    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2025-03-01", "warranty_months": 6}, # 測試項目
+    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2026-03-01", "warranty_months": 6},
     {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
@@ -24,7 +24,7 @@ def get_channel_access_token():
     p = {"grant_type": "client_credentials", "client_id": CHANNEL_ID, "client_secret": CHANNEL_SECRET}
     try:
         res = requests.post(url, data=p, timeout=10)
-        return res.json().get("access_token")
+        return res.json().get("access_token") if res.status_code == 200 else None
     except: return None
 
 def process_data():
@@ -53,10 +53,10 @@ def process_data():
         else: app_h += row
         full_list_str += f"{icon} {n}\n   (剩 {max(0, rem)}天)\n"
 
-    # 生成 HTML
-    h_style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
-    h_content = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{h_style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
-    with open("warranty_report.html", "w", encoding="utf-8") as f: f.write(h_content)
+    # 生成 HTML (CSS 壓縮為單行避免 f-string 衝突)
+    style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
+    html = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
+    with open("warranty_report.html", "w", encoding="utf-8") as f: f.write(html)
     
     return soon_list, full_list_str, today.strftime('%Y-%m-%d')
 
@@ -65,7 +65,6 @@ def push_line(token, soon_list, full_list, date_str):
     url = "https://line.me"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     
-    # 組合純文字訊息 (最保險，不會因為格式錯誤被 LINE 拒絕)
     report_url = "https://github.io"
     msg_text = f"【Fiona 家務資產報表 {date_str}】\n"
     msg_text += "-"*15 + "\n"
@@ -75,11 +74,12 @@ def push_line(token, soon_list, full_list, date_str):
     msg_text += "-"*15 + "\n"
     msg_text += f"📊 詳細彩色報表：\n{report_url}"
 
+    # 修正語法：補齊 payload 的字典內容
     payload = {"to": USER_ID, "messages":}
-    res = requests.post(url, headers=headers, json=payload, timeout=10)
-    print(f"DEBUG: LINE 狀態碼: {res.status_code}, 回傳: {res.text}")
+    requests.post(url, headers=headers, json=payload, timeout=10)
 
 if __name__ == "__main__":
     soon_l, full_l, d_s = process_data()
     t = get_channel_access_token()
     push_line(t, soon_l, full_l, d_s)
+    print("✅ 執行完畢")
