@@ -10,12 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
-    # 修正：把 env 放到這裡，這是最穩定的全域寫法
-    env:
-      LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
-      LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
-      LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
     steps:
       - name: 檢查程式碼
@@ -29,6 +23,7 @@ jobs:
       - name: 安裝必要套件
         run: pip install -r requirements.txt
 
+      # 執行「資產日報」 (Main.py)
       - name: 執行「資產日報」 (Main.py)
         uses: nick-fields/retry@v3
         with:
@@ -36,7 +31,13 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           command: python Main.py
+        # 必須寫在 step 內，retry 才抓得到
+        env:
+          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
+          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
+      # 執行「保固追蹤」 (warranty.py)
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
         with:
@@ -44,6 +45,11 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           command: python warranty.py
+        # 必須寫在 step 內，retry 才抓得到
+        env:
+          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
+          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
       - name: 將 HTML 自動存回檔案庫
         run: |
