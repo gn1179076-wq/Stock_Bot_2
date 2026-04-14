@@ -351,6 +351,8 @@ def push_message(token, text):
 # ==========================================
 # 5. 主程式
 # ==========================================
+REPORT_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
+
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務...")
     soon_l, expired_l, full_list_str, d_s = process_data()
@@ -369,10 +371,12 @@ if __name__ == "__main__":
                 parts.append("⚠️ 即將到期（90天內）：")
                 parts.append("\n".join(soon_l))
 
+            parts.append(f"📋 完整報告：{REPORT_URL}")
+
             msg_text = "\n------------------\n".join(parts)
             push_message(token, msg_text)
         else:
-            msg_text = f"【Fiona 家務提醒 {d_s}】\n🎉 所有設備及耗材狀態正常！"
+            msg_text = f"【Fiona 家務提醒 {d_s}】\n🎉 所有設備及耗材狀態正常！\n------------------\n📋 完整報告：{REPORT_URL}"
             push_message(token, msg_text)
     else:
         print("❌ 任務失敗：無法取得 Token")
