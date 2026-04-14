@@ -33,7 +33,7 @@ def process_data():
     
     appliance_rows = ""
     consumable_rows = ""
-    expiring_soon = []
+    soon = []
 
     for item in home_assets:
         p_date = datetime.strptime(item['purchase_date'], "%Y-%m-%d").replace(tzinfo=tw_tz)
@@ -42,17 +42,13 @@ def process_data():
         is_consumable = "[耗材]" in item['name']
         display_name = item['name'].replace("[耗材] ", "")
 
-        # 狀態邏輯
         if days_left < 0:
             status_cls, status_text = ("danger", "更換期") if is_consumable else ("expired", "已過期")
-            icon = "🔴" if is_consumable else "⚪"
         elif days_left <= 90:
             status_cls, status_text = "warning", "即將到期"
-            icon = "⚠️"
-            expiring_soon.append(f"🔸 {item['name']} (剩 {days_left} 天)")
+            soon.append(f"🔸 {item['name']} (剩 {days_left} 天)")
         else:
             status_cls, status_text = "safe", "狀態正常"
-            icon = "✅"
 
         row_html = f"""
             <tr>
@@ -67,7 +63,7 @@ def process_data():
         if is_consumable: consumable_rows += row_html
         else: appliance_rows += row_html
 
-    return appliance_rows, consumable_rows, expiring_soon, today.strftime('%Y-%m-%d')
+    return appliance_rows, consumable_rows, soon, today.strftime('%Y-%m-%d')
 
 def save_html(appliances, consumables, date_str):
     html_template = f"""
@@ -79,47 +75,31 @@ def save_html(appliances, consumables, date_str):
         <link href="https://googleapis.com" rel="stylesheet">
         <style>
             :root {{ --safe: #27ae60; --warning: #f39c12; --danger: #e74c3c; --expired: #95a5a6; }}
-            body {{ font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px 20px; color: #2c3e50; }}
+            body {{ font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px 20px; color: #2c3e50; line-height: 1.6; }}
             .container {{ max-width: 900px; margin: auto; }}
             .header {{ text-align: center; margin-bottom: 40px; }}
             .header h1 {{ margin: 0; color: #2c3e50; font-size: 28px; }}
-            .header p {{ color: #7f8c8d; }}
-            .card {{ background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden; border: 1px solid #eef2f3; }}
-            .card-title {{ padding: 20px 25px; margin: 0; background: #fafafa; border-bottom: 1px solid #eee; font-size: 18px; display: flex; align-items: center; }}
-            .card-title::before {{ content: ''; display: inline-block; width: 4px; height: 18px; background: #3498db; margin-right: 12px; border-radius: 2px; }}
+            .card {{ background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden; }}
+            .card-title {{ padding: 20px 25px; margin: 0; background: #fafafa; border-bottom: 1px solid #eee; font-size: 18px; color: #34495e; }}
             table {{ width: 100%; border-collapse: collapse; }}
-            th {{ background: #fdfdfd; padding: 15px 25px; text-align: left; font-size: 13px; text-transform: uppercase; color: #95a5a6; letter-spacing: 1px; }}
+            th {{ background: #fdfdfd; padding: 15px 25px; text-align: left; font-size: 13px; color: #95a5a6; }}
             td {{ padding: 18px 25px; border-top: 1px solid #f6f8f9; font-size: 15px; }}
             .badge {{ padding: 6px 12px; border-radius: 50px; font-size: 12px; font-weight: bold; }}
             .safe {{ background: #eafaf1; color: var(--safe); }}
             .warning {{ background: #fef5e7; color: var(--warning); }}
             .danger {{ background: #fdedec; color: var(--danger); }}
             .expired {{ background: #f4f6f7; color: var(--expired); }}
-            strong {{ color: #34495e; }}
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="header">
-                <h1>🏠 Fiona 家務資產管理</h1>
-                <p>最後更新時間：{date_str}</p>
-            </div>
-
-            <div class="card">
-                <h3 class="card-title">📦 硬體設備保固</h3>
-                <table>
-                    <thead><tr><th>產品名稱</th><th>購買日</th><th>保固</th><th>到期日</th><th>剩餘天數</th><th>狀態</th></tr></thead>
-                    <tbody>{appliances}</tbody>
-                </table>
-            </div>
-
-            <div class="card">
-                <h3 class="card-title" style="border-left-color: #e67e22;">♻️ 耗材更換追蹤</h3>
-                <table>
-                    <thead><tr><th>產品名稱</th><th>更換日</th><th>週期</th><th>下次更換</th><th>剩餘天數</th><th>狀態</th></tr></thead>
-                    <tbody>{consumables}</tbody>
-                </table>
-            </div>
+            <div class="header"><h1>🏠 Fiona 家務資產管理</h1><p>更新：{date_str}</p></div>
+            <div class="card"><h3 class="card-title">📦 硬體設備保固</h3><table>
+            <thead><tr><th>產品名稱</th><th>購買日</th><th>保固</th><th>到期日</th><th>剩餘天數</th><th>狀態</th></tr></thead>
+            <tbody>{appliances}</tbody></table></div>
+            <div class="card"><h3 class="card-title">♻️ 耗材更換追蹤</h3><table>
+            <thead><tr><th>產品名稱</th><th>更換日</th><th>週期</th><th>下次更換</th><th>剩餘天數</th><th>狀態</th></tr></thead>
+            <tbody>{consumables}</tbody></table></div>
         </div>
     </body>
     </html>
@@ -134,15 +114,9 @@ def push_line(token, text):
     requests.post("https://line.me", headers=headers, json=payload)
 
 if __name__ == "__main__":
-    app_rows, cons_rows, soon, date_str = process_data()
-    save_html(app_rows, cons_rows, date_str)
-    
-    # 組合 LINE 訊息
-    line_msg = f"【Fiona 保固報表 {date_str}】\n"
-    line_msg += "------------------\n"
-    line_msg += "🔥 即將到期：\n" + ("\n".join(soon) if soon else "🎉 一切正常") + "\n"
-    line_msg += "------------------\n💡 詳細報表請見 GitHub Artifacts。"
-    
-    token = get_channel_access_token()
-    push_line(token, line_msg)
-    print("✅ 美化版報表更新完成！")
+    app_rows, cons_rows, soon_list, d_str = process_data()
+    save_html(app_rows, cons_rows, d_str)
+    line_msg = f"【Fiona 保固報表 {d_str}】\n------------------\n"
+    line_msg += "🔥 即將到期：\n" + ("\n".join(soon_list) if soon_list else "🎉 一切正常") + "\n------------------\n💡 詳細報表見 GitHub Artifacts。"
+    push_line(get_channel_access_token(), line_msg)
+    print("✅ 執行成功！")
