@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 # 1. 設定區
+# 1. 安全讀取 (從 GitHub Secrets 抓取)
 CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 USER_ID = os.getenv("LINE_USER_ID")
