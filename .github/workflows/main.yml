@@ -30,13 +30,13 @@ jobs:
           pip install -r requirements.txt
 
       # 2. 執行「資產日報」 (Main.py) - 若不需要可自行註解
-      - name: 執行「資產日報」 (Main.py)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 60
-          command: python Main.py
+      #- name: 執行「資產日報」 (Main.py)
+      #  uses: nick-fields/retry@v3
+      #  with:
+      #    timeout_minutes: 10
+      #    max_attempts: 3
+      #    retry_wait_seconds: 60
+      #    command: python Main.py
 
       # 3. 執行「保固追蹤」 (warranty.py)
       - name: 執行「保固追蹤」 (warranty.py)
