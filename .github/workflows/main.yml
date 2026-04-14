@@ -34,7 +34,7 @@ jobs:
           timeout_minutes: 10
          max_attempts: 3
           retry_wait_seconds: 60
-ㄋ          command: python Main.py
+          command: python Main.py
 
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
