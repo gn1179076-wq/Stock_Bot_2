@@ -4,15 +4,12 @@ import os
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 安全設定區 (透過 GitHub Secrets 讀取)
+# 1. 設定區
 # ==========================================
 CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 USER_ID = os.getenv("LINE_USER_ID")
 
-# ==========================================
-# 2. 家電與耗材清單
-# ==========================================
 home_assets = [
     {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
     {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2026-03-01", "warranty_months": 6},
@@ -22,135 +19,130 @@ home_assets = [
 ]
 
 # ==========================================
-# 3. 核心處理功能
+# 2. 核心邏輯
 # ==========================================
 def get_channel_access_token():
-    """獲取 LINE Channel Access Token"""
     url = "https://line.me"
-    payload = {
-        "grant_type": "client_credentials",
-        "client_id": CHANNEL_ID,
-        "client_secret": CHANNEL_SECRET
-    }
-    try:
-        response = requests.post(url, data=payload)
-        if response.status_code == 200:
-            return response.json().get("access_token")
-        return None
-    except Exception as e:
-        print(f"Token 獲取失敗: {e}")
-        return None
+    payload = {"grant_type": "client_credentials", "client_id": CHANNEL_ID, "client_secret": CHANNEL_SECRET}
+    res = requests.post(url, data=payload)
+    return res.json().get("access_token") if res.status_code == 200 else None
 
-def process_and_report():
-    """處理保固邏輯並產生回報內容"""
-    # 設定台灣時區
+def process_data():
     tw_tz = timezone(timedelta(hours=8))
     today = datetime.now(tw_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     
+    appliance_rows = ""
+    consumable_rows = ""
     expiring_soon = []
-    already_expired_count = 0
-    line_details = ""
-    html_rows = ""
 
     for item in home_assets:
-        # 解析購買日期
         p_date = datetime.strptime(item['purchase_date'], "%Y-%m-%d").replace(tzinfo=tw_tz)
-        # 計算到期日 (月數 * 30.44 天)
         expiry_date = p_date + timedelta(days=item['warranty_months'] * 30.44)
         days_left = (expiry_date - today).days
-        
         is_consumable = "[耗材]" in item['name']
-        
-        # 決定狀態、圖示與 CSS 類別
+        display_name = item['name'].replace("[耗材] ", "")
+
+        # 狀態邏輯
         if days_left < 0:
-            already_expired_count += 1
-            if is_consumable:
-                status, icon, css = "更換期!", "🔴", "expired-cons"
-            else:
-                status, icon, css = "已過期", "⚪", "expired-item"
+            status_cls, status_text = ("danger", "更換期") if is_consumable else ("expired", "已過期")
+            icon = "🔴" if is_consumable else "⚪"
         elif days_left <= 90:
-            status, icon, css = "即將到期", "⚠️", "warning"
+            status_cls, status_text = "warning", "即將到期"
+            icon = "⚠️"
             expiring_soon.append(f"🔸 {item['name']} (剩 {days_left} 天)")
         else:
-            status, icon, css = "正常", "✅", "safe"
+            status_cls, status_text = "safe", "狀態正常"
+            icon = "✅"
 
-        # 組合 LINE 訊息內容
-        line_details += f"{icon} {item['name']}\n   {expiry_date.strftime('%Y-%m-%d')} 到期\n"
-
-        # 組合 HTML 表格列
-        html_rows += f"""
-            <tr class="{css}">
-                <td>{item['name']}</td>
+        row_html = f"""
+            <tr>
+                <td><strong>{display_name}</strong></td>
                 <td>{item['purchase_date']}</td>
                 <td>{item['warranty_months']}</td>
                 <td>{expiry_date.strftime('%Y-%m-%d')}</td>
-                <td>{days_left if days_left >= 0 else 'EXPIRED'}</td>
-                <td>{status}</td>
+                <td>{days_left if days_left >= 0 else '--'}</td>
+                <td><span class="badge {status_cls}">{status_text}</span></td>
             </tr>
         """
+        if is_consumable: consumable_rows += row_html
+        else: appliance_rows += row_html
 
-    # 製作 LINE 訊息字串
-    line_msg = (
-        f"【Fiona 家務資產報表】\n📅 檢查日期: {today.strftime('%Y-%m-%d')}\n"
-        f"------------------\n"
-        f"🔥 三個月內到期/更換：\n" + ("\n".join(expiring_soon) if expiring_soon else "🎉 目前狀態良好") +
-        f"\n------------------\n"
-        f"📦 全資產狀態總覽：\n{line_details}"
-        f"------------------\n"
-        f"💡 已過期或需更換：{already_expired_count} 個"
-    )
+    return appliance_rows, consumable_rows, expiring_soon, today.strftime('%Y-%m-%d')
 
-    # 製作 HTML 檔案
-    html_content = f"""
-    <html><head><meta charset="utf-8">
-    <style>
-        body {{ font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 20px; background: #f4f7f6; }}
-        h2 {{ color: #2c3e50; text-align: center; }}
-        table {{ width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-        th, td {{ padding: 15px; border-bottom: 1px solid #eee; text-align: left; }}
-        th {{ background: #2ecc71; color: white; }}
-        .expired-cons {{ background: #ffebee; color: #c62828; font-weight: bold; }}
-        .expired-item {{ background: #f5f5f5; color: #9e9e9e; }}
-        .warning {{ background: #fffde7; color: #f57f17; font-weight: bold; }}
-        .safe {{ background: #f1f8e9; color: #388e3c; }}
-    </style></head><body>
-        <h2>🏠 Fiona 家務資產保固/耗材清單</h2>
-        <table>
-            <tr><th>產品名稱</th><th>購買/更換日</th><th>週期(月)</th><th>到期日期</th><th>剩餘天數</th><th>狀態</th></tr>
-            {html_rows}
-        </table>
-    </body></html>
+def save_html(appliances, consumables, date_str):
+    html_template = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://googleapis.com" rel="stylesheet">
+        <style>
+            :root {{ --safe: #27ae60; --warning: #f39c12; --danger: #e74c3c; --expired: #95a5a6; }}
+            body {{ font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px 20px; color: #2c3e50; }}
+            .container {{ max-width: 900px; margin: auto; }}
+            .header {{ text-align: center; margin-bottom: 40px; }}
+            .header h1 {{ margin: 0; color: #2c3e50; font-size: 28px; }}
+            .header p {{ color: #7f8c8d; }}
+            .card {{ background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden; border: 1px solid #eef2f3; }}
+            .card-title {{ padding: 20px 25px; margin: 0; background: #fafafa; border-bottom: 1px solid #eee; font-size: 18px; display: flex; align-items: center; }}
+            .card-title::before {{ content: ''; display: inline-block; width: 4px; height: 18px; background: #3498db; margin-right: 12px; border-radius: 2px; }}
+            table {{ width: 100%; border-collapse: collapse; }}
+            th {{ background: #fdfdfd; padding: 15px 25px; text-align: left; font-size: 13px; text-transform: uppercase; color: #95a5a6; letter-spacing: 1px; }}
+            td {{ padding: 18px 25px; border-top: 1px solid #f6f8f9; font-size: 15px; }}
+            .badge {{ padding: 6px 12px; border-radius: 50px; font-size: 12px; font-weight: bold; }}
+            .safe {{ background: #eafaf1; color: var(--safe); }}
+            .warning {{ background: #fef5e7; color: var(--warning); }}
+            .danger {{ background: #fdedec; color: var(--danger); }}
+            .expired {{ background: #f4f6f7; color: var(--expired); }}
+            strong {{ color: #34495e; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏠 Fiona 家務資產管理</h1>
+                <p>最後更新時間：{date_str}</p>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">📦 硬體設備保固</h3>
+                <table>
+                    <thead><tr><th>產品名稱</th><th>購買日</th><th>保固</th><th>到期日</th><th>剩餘天數</th><th>狀態</th></tr></thead>
+                    <tbody>{appliances}</tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title" style="border-left-color: #e67e22;">♻️ 耗材更換追蹤</h3>
+                <table>
+                    <thead><tr><th>產品名稱</th><th>更換日</th><th>週期</th><th>下次更換</th><th>剩餘天數</th><th>狀態</th></tr></thead>
+                    <tbody>{consumables}</tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+    </html>
     """
     with open("warranty_report.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
-        
-    return line_msg
+        f.write(html_template)
 
-def push_message(token, text):
-    """將訊息推送到 LINE"""
-    if not token:
-        print("❌ 錯誤: 無法取得 Token")
-        return
-    url = "https://line.me"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "to": USER_ID,
-        "messages": [{"type": "text", "text": text}]
-    }
-    res = requests.post(url, headers=headers, json=payload)
-    if res.status_code == 200:
-        print("✅ LINE 訊息發送成功！")
-    else:
-        print(f"❌ LINE 訊息發送失敗: {res.text}")
+def push_line(token, text):
+    if not token: return
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {"to": USER_ID, "messages":}
+    requests.post("https://line.me", headers=headers, json=payload)
 
 if __name__ == "__main__":
-    # 執行保固與耗材分析
-    token = get_channel_access_token()
-    msg_text = process_and_report()
+    app_rows, cons_rows, soon, date_str = process_data()
+    save_html(app_rows, cons_rows, date_str)
     
-    # 發送訊息
-    push_message(token, msg_text)
-    print("✅ 處理完畢！HTML 報表與 LINE 訊息已同步生成。")
+    # 組合 LINE 訊息
+    line_msg = f"【Fiona 保固報表 {date_str}】\n"
+    line_msg += "------------------\n"
+    line_msg += "🔥 即將到期：\n" + ("\n".join(soon) if soon else "🎉 一切正常") + "\n"
+    line_msg += "------------------\n💡 詳細報表請見 GitHub Artifacts。"
+    
+    token = get_channel_access_token()
+    push_line(token, line_msg)
+    print("✅ 美化版報表更新完成！")
