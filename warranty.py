@@ -75,8 +75,67 @@ def process_data():
             continue
 
     # HTML 樣式中的大括號必須雙寫 {{}} 才能在 f-string 中正確顯示
-    style = "body{{font-family:sans-serif;background:#f0f2f5;padding:20px}} .card{{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto}} .title{{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db}} table{{width:100%;border-collapse:collapse}} th,td{{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px}} th{{background:#f8f9fa;color:#95a5a6;font-size:12px}} .badge{{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold}} .safe{{background:#eafaf1;color:#27ae60}} .warning{{background:#fef5e7;color:#f39c12}} .danger{{background:#fdedec;color:#e74c3c}} .expired{{background:#f4f6f7;color:#95a5a6}}"
-    html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h if app_h else '<tr><td colspan=6>暫無資料</td></tr>'}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h if cons_h else '<tr><td colspan=6>暫無資料</td></tr>'}</tbody></table></div></body></html>"
+    # --- 超美化 CSS 樣式 ---
+    style = """
+    body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 30px 15px; color: #333; margin: 0; min-height: 100vh; }
+    .container { max-width: 900px; margin: auto; }
+    h2 { text-align: center; color: #2c3e50; font-weight: 700; margin-bottom: 30px; letter-spacing: 1px; }
+    .card { background: #fff; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden; border: none; }
+    .title { padding: 18px 25px; background: #fff; color: #2c3e50; font-size: 1.1rem; font-weight: bold; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
+    .title i { margin-right: 10px; }
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th { background: #f8f9fa; color: #7f8c8d; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; padding: 15px 20px; border-bottom: 2px solid #edf2f7; text-align: left; }
+    td { padding: 15px 20px; border-bottom: 1px solid #f1f1f1; font-size: 0.95rem; color: #444; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background-color: #fcfdfe; }
+    .badge { padding: 6px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-align: center; display: inline-block; }
+    .safe { background: #e6fffa; color: #38b2ac; }
+    .warning { background: #fffaf0; color: #ed8936; }
+    .danger { background: #fff5f5; color: #f56565; }
+    .expired { background: #f7fafc; color: #a0aec0; }
+    .days-left { font-family: 'Monaco', monospace; font-weight: bold; color: #2d3748; }
+    @media (max-width: 600px) {
+        td, th { padding: 12px 10px; font-size: 0.85rem; }
+    }
+    """
+
+    # --- 重新組合 HTML ---
+    html_template = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>{style}</style>
+</head>
+<body>
+    <div class='container'>
+        <h2>🏠 Fiona 家務資產儀表板</h2>
+        
+        <div class='card'>
+            <div class='title' style='border-left: 6px solid #3498db;'>📦 硬體設備保固</div>
+            <div class='table-wrapper'>
+                <table>
+                    <thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期日</th><th>剩餘天數</th><th>狀態</th></tr></thead>
+                    <tbody>{app_h if app_h else '<tr><td colspan=6 style="text-align:center">暫無資料</td></tr>'}</tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class='card'>
+            <div class='title' style='border-left: 6px solid #e67e22;'>♻️ 耗材更換追蹤</div>
+            <div class='table-wrapper'>
+                <table>
+                    <thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次更換</th><th>剩餘天數</th><th>狀態</th></tr></thead>
+                    <tbody>{cons_h if cons_h else '<tr><td colspan=6 style="text-align:center">暫無資料</td></tr>'}</tbody>
+                </table>
+            </div>
+        </div>
+        
+        <p style='text-align:center; color: #95a5a6; font-size: 0.8rem;'>最後更新時間: {today.strftime('%Y-%m-%d %H:%M')}</p>
+    </div>
+</body>
+</html>"""
 
     with open("warranty_report.html", "w", encoding="utf-8") as f:
         f.write(html_template)
