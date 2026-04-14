@@ -4,24 +4,23 @@ import os
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 安全設定 (動態讀取環境變數)
+# 1. 取得 Token
 # ==========================================
 def get_channel_access_token():
+    long_lived_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+    if long_lived_token:
+        print("✅ 使用長期 Channel Access Token")
+        return long_lived_token
+
     cid = os.getenv("LINE_CHANNEL_ID")
     csecret = os.getenv("LINE_CHANNEL_SECRET")
-    
     if not cid or not csecret:
-        print("❌ 錯誤：LINE_CHANNEL_ID 或 SECRET 為空")
+        print("❌ 錯誤：請設定 LINE_CHANNEL_ACCESS_TOKEN 或 LINE_CHANNEL_ID + LINE_CHANNEL_SECRET")
         return None
 
-    # 修正：正確的 LINE Token API 網址
     url = "https://api.line.me/v2/oauth/accessToken"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    payload = {
-        "grant_type": "client_credentials",
-        "client_id": cid,
-        "client_secret": csecret
-    }
+    payload = {"grant_type": "client_credentials", "client_id": cid, "client_secret": csecret}
     try:
         response = requests.post(url, headers=headers, data=payload, timeout=15)
         if response.status_code == 200:
@@ -33,7 +32,10 @@ def get_channel_access_token():
         print(f"❌ Token 請求異常: {e}")
         return None
 
+
+# ==========================================
 # 2. 家務資產清單
+# ==========================================
 home_assets = [
     {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
     {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
@@ -44,10 +46,18 @@ home_assets = [
     {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
 ]
 
+
+# ==========================================
+# 3. 資料處理 & HTML 報表
+# ==========================================
 def process_data():
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    app_h, cons_h, soon_list, full_list_str = "", "", [], ""
+    app_rows, cons_rows, soon_list, full_list_str = "", "", [], ""
+
+    # 統計數據
+    total_items = len(home_assets)
+    safe_count, warning_count, danger_count = 0, 0, 0
 
     for item in home_assets:
         try:
@@ -56,113 +66,271 @@ def process_data():
             rem = (e_d - today).days
             is_c = "[耗材]" in item['name']
             n = item['name'].replace("[耗材] ", "")
-            
+
             if rem < 0:
-                c, t, icon = (("danger", "更換期", "🔴") if is_c else ("expired", "已過期", "⚪"))
+                badge_class = "danger" if is_c else "expired"
+                badge_text = "需更換" if is_c else "已過期"
+                icon = "🔴"
+                days_display = '<span class="days-cell danger-text">已逾期</span>'
+                danger_count += 1
             elif rem <= 90:
-                c, t, icon = ("warning", "即將到期", "⚠️")
+                badge_class = "warning"
+                badge_text = "即將到期"
+                icon = "⚠️"
+                days_display = f'<span class="days-cell warning-text">{rem} 天</span>'
                 soon_list.append(f"🔸 {item['name']} (剩 {rem} 天)")
+                warning_count += 1
             else:
-                c, t, icon = ("safe", "狀態正常", "✅")
-            
-            row = f"<tr><td><strong>{n}</strong></td><td>{item['purchase_date']}</td><td style='text-align:center'>{item['warranty_months']}</td><td>{e_d.strftime('%Y-%m-%d')}</td><td>{max(0, rem) if rem >= 0 else '--'}</td><td><span class='badge {c}'>{t}</span></td></tr>"
-            
-            if is_c: cons_h += row
-            else: app_h += row
+                badge_class = "safe"
+                badge_text = "正常"
+                icon = "✅"
+                days_display = f'<span class="days-cell">{rem} 天</span>'
+                safe_count += 1
+
+            row = (
+                f"<tr>"
+                f"<td><div class='item-name'>{n}</div></td>"
+                f"<td>{item['purchase_date']}</td>"
+                f"<td class='center'>{item['warranty_months']}</td>"
+                f"<td>{e_d.strftime('%Y-%m-%d')}</td>"
+                f"<td>{days_display}</td>"
+                f"<td><span class='badge {badge_class}'>{badge_text}</span></td>"
+                f"</tr>"
+            )
+
+            if is_c:
+                cons_rows += row
+            else:
+                app_rows += row
             full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
         except Exception as e:
             print(f"跳過項目 {item.get('name')}: {e}")
             continue
 
-    # HTML 樣式中的大括號必須雙寫 {{}} 才能在 f-string 中正確顯示
-    # --- 超美化 CSS 樣式 ---
-    style = """
-    body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 30px 15px; color: #333; margin: 0; min-height: 100vh; }
-    .container { max-width: 900px; margin: auto; }
-    h2 { text-align: center; color: #2c3e50; font-weight: 700; margin-bottom: 30px; letter-spacing: 1px; }
-    .card { background: #fff; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden; border: none; }
-    .title { padding: 18px 25px; background: #fff; color: #2c3e50; font-size: 1.1rem; font-weight: bold; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
-    .title i { margin-right: 10px; }
-    .table-wrapper { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: #fff; }
-    th { background: #f8f9fa; color: #7f8c8d; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; padding: 15px 20px; border-bottom: 2px solid #edf2f7; text-align: left; }
-    td { padding: 15px 20px; border-bottom: 1px solid #f1f1f1; font-size: 0.95rem; color: #444; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover { background-color: #fcfdfe; }
-    .badge { padding: 6px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-align: center; display: inline-block; }
-    .safe { background: #e6fffa; color: #38b2ac; }
-    .warning { background: #fffaf0; color: #ed8936; }
-    .danger { background: #fff5f5; color: #f56565; }
-    .expired { background: #f7fafc; color: #a0aec0; }
-    .days-left { font-family: 'Monaco', monospace; font-weight: bold; color: #2d3748; }
-    @media (max-width: 600px) {
-        td, th { padding: 12px 10px; font-size: 0.85rem; }
-    }
-    """
+    update_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M')
 
-    # --- 重新組合 HTML ---
-    html_template = f"""<!DOCTYPE html>
-<html>
+    html = f"""<!DOCTYPE html>
+<html lang="zh-Hant">
 <head>
-    <meta charset='utf-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <style>{style}</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiona 家務資產儀表板</title>
+<style>
+  *, *::before, *::after {{ box-sizing: border-box; }}
+
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 0; padding: 24px 16px;
+    min-height: 100vh;
+    color: #2d3748;
+  }}
+
+  .container {{ max-width: 920px; margin: auto; }}
+
+  /* ---- Header ---- */
+  .header {{
+    text-align: center; margin-bottom: 28px;
+  }}
+  .header h1 {{
+    font-size: 1.6rem; color: #fff; margin: 0 0 6px;
+    text-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }}
+  .header .subtitle {{
+    color: rgba(255,255,255,.75); font-size: .85rem;
+  }}
+
+  /* ---- Summary Cards ---- */
+  .summary {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }}
+  .summary-card {{
+    background: rgba(255,255,255,.95);
+    border-radius: 14px;
+    padding: 18px 14px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,.08);
+    backdrop-filter: blur(10px);
+  }}
+  .summary-card .num {{
+    font-size: 1.8rem; font-weight: 800; line-height: 1;
+  }}
+  .summary-card .label {{
+    font-size: .75rem; color: #718096; margin-top: 6px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+  }}
+  .num.green  {{ color: #38a169; }}
+  .num.orange {{ color: #dd6b20; }}
+  .num.red    {{ color: #e53e3e; }}
+  .num.blue   {{ color: #3182ce; }}
+
+  /* ---- Table Card ---- */
+  .card {{
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.1);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }}
+  .card-header {{
+    padding: 16px 22px;
+    font-weight: 700; font-size: 1rem;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid #edf2f7;
+  }}
+  .card-header .icon {{
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+  }}
+  .icon-blue  {{ background: #ebf4ff; }}
+  .icon-orange {{ background: #fefcbf; }}
+
+  .table-wrap {{ overflow-x: auto; }}
+
+  table {{
+    width: 100%; border-collapse: collapse;
+  }}
+  th {{
+    background: #f7fafc; color: #a0aec0;
+    font-size: .72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px;
+    padding: 12px 18px; text-align: left;
+    border-bottom: 2px solid #edf2f7;
+    white-space: nowrap;
+  }}
+  td {{
+    padding: 14px 18px; font-size: .88rem;
+    border-bottom: 1px solid #f7fafc;
+    white-space: nowrap;
+  }}
+  tr:last-child td {{ border-bottom: none; }}
+  tr:hover {{ background: #f7fafc; }}
+
+  .item-name {{ font-weight: 600; color: #2d3748; }}
+  .center {{ text-align: center; }}
+
+  .days-cell {{
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-weight: 700; font-size: .85rem; color: #2d3748;
+  }}
+  .warning-text {{ color: #dd6b20; }}
+  .danger-text  {{ color: #e53e3e; }}
+
+  /* ---- Badges ---- */
+  .badge {{
+    display: inline-block;
+    padding: 5px 14px; border-radius: 50px;
+    font-size: .72rem; font-weight: 700;
+    letter-spacing: .3px;
+  }}
+  .safe    {{ background: #f0fff4; color: #38a169; }}
+  .warning {{ background: #fffaf0; color: #dd6b20; }}
+  .danger  {{ background: #fff5f5; color: #e53e3e; }}
+  .expired {{ background: #f7fafc; color: #a0aec0; }}
+
+  /* ---- Footer ---- */
+  .footer {{
+    text-align: center; margin-top: 12px;
+    color: rgba(255,255,255,.6); font-size: .75rem;
+  }}
+
+  /* ---- Responsive ---- */
+  @media (max-width: 600px) {{
+    body {{ padding: 16px 10px; }}
+    th, td {{ padding: 10px 12px; font-size: .82rem; }}
+    .summary {{ grid-template-columns: repeat(2, 1fr); gap: 10px; }}
+    .header h1 {{ font-size: 1.3rem; }}
+  }}
+</style>
 </head>
 <body>
-    <div class='container'>
-        <h2>🏠 Fiona 家務資產儀表板</h2>
-        
-        <div class='card'>
-            <div class='title' style='border-left: 6px solid #3498db;'>📦 硬體設備保固</div>
-            <div class='table-wrapper'>
-                <table>
-                    <thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期日</th><th>剩餘天數</th><th>狀態</th></tr></thead>
-                    <tbody>{app_h if app_h else '<tr><td colspan=6 style="text-align:center">暫無資料</td></tr>'}</tbody>
-                </table>
-            </div>
-        </div>
+<div class="container">
 
-        <div class='card'>
-            <div class='title' style='border-left: 6px solid #e67e22;'>♻️ 耗材更換追蹤</div>
-            <div class='table-wrapper'>
-                <table>
-                    <thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次更換</th><th>剩餘天數</th><th>狀態</th></tr></thead>
-                    <tbody>{cons_h if cons_h else '<tr><td colspan=6 style="text-align:center">暫無資料</td></tr>'}</tbody>
-                </table>
-            </div>
-        </div>
-        
-        <p style='text-align:center; color: #95a5a6; font-size: 0.8rem;'>最後更新時間: {today.strftime('%Y-%m-%d %H:%M')}</p>
+  <div class="header">
+    <h1>🏠 Fiona 家務資產儀表板</h1>
+    <div class="subtitle">自動追蹤保固 &amp; 耗材更換週期</div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card">
+      <div class="num blue">{total_items}</div>
+      <div class="label">管理項目</div>
     </div>
+    <div class="summary-card">
+      <div class="num green">{safe_count}</div>
+      <div class="label">狀態正常</div>
+    </div>
+    <div class="summary-card">
+      <div class="num orange">{warning_count}</div>
+      <div class="label">即將到期</div>
+    </div>
+    <div class="summary-card">
+      <div class="num red">{danger_count}</div>
+      <div class="label">需處理</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="icon icon-blue">📦</div>
+      硬體設備保固
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>名稱</th><th>購買日</th><th>保固(月)</th><th>到期日</th><th>剩餘</th><th>狀態</th></tr></thead>
+        <tbody>{app_rows if app_rows else '<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="icon icon-orange">♻️</div>
+      耗材更換追蹤
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>名稱</th><th>更換日</th><th>週期(月)</th><th>下次更換</th><th>剩餘</th><th>狀態</th></tr></thead>
+        <tbody>{cons_rows if cons_rows else '<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">最後更新：{update_time}</div>
+
+</div>
 </body>
 </html>"""
 
     with open("warranty_report.html", "w", encoding="utf-8") as f:
-        f.write(html_template)
-    
+        f.write(html)
+
     return soon_list, full_list_str, today.strftime('%Y-%m-%d')
 
+
+# ==========================================
+# 4. LINE 推播訊息
+# ==========================================
 def push_message(token, text):
     user_id = os.getenv("LINE_USER_ID")
     if not user_id or not token:
-        print("❌ 缺少 Token 或 User_ID")
+        print("❌ 缺少 Token 或 LINE_USER_ID")
         return
 
-    # 修正：正確的 LINE Push 訊息網址
     url = "https://api.line.me/v2/bot/message/push"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
-    
-    # 修正：補齊 messages 的結構內容，解決 SyntaxError
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
     payload = {
         "to": user_id,
-        "messages": [
-            {
-                "type": "text",
-                "text": text
-            }
-        ]
+        "messages": [{"type": "text", "text": text}]
     }
-    
+
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=15)
         if res.status_code == 200:
@@ -172,11 +340,15 @@ def push_message(token, text):
     except Exception as e:
         print(f"❌ 網路連線錯誤: {e}")
 
+
+# ==========================================
+# 5. 主程式
+# ==========================================
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務...")
     soon_l, full_list_str, d_s = process_data()
     token = get_channel_access_token()
-    
+
     if token:
         soon_msg = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
         msg_text = (
