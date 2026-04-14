@@ -3,7 +3,9 @@ import requests
 import os
 from datetime import datetime, timedelta, timezone
 
-# 1. 安全設定 (與 Main.py 共用 Secrets)
+# ==========================================
+# 1. 安全設定區 (請確保 GitHub Secrets 名稱正確)
+# ==========================================
 CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 USER_ID = os.getenv("LINE_USER_ID")
@@ -28,11 +30,14 @@ def get_channel_access_token():
         "client_secret": CHANNEL_SECRET
     }
     try:
-        response = requests.post(url, headers=headers, data=payload, timeout=10)
+        response = requests.post(url, headers=headers, data=payload, timeout=15)
         if response.status_code == 200:
             return response.json().get("access_token")
-        return None
-    except:
+        else:
+            print(f"❌ 無法獲取 Token: {response.text}")
+            return None
+    except Exception as e:
+        print(f"❌ Token 請求出錯: {e}")
         return None
 
 def process_data():
@@ -71,38 +76,45 @@ def process_data():
     date_str = today.strftime('%Y-%m-%d')
     return soon_list, full_list_str, date_str
 
-def push_message(token, soon_list, full_list, date_str):
-    if not token:
-        print("❌ 無法取得 Token")
-        return
-        
-    url = "https://line.me"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
-    
-    # 組合訊息
-    report_url = "https://github.io" # 請替換為你的 GitHub Pages 網址
-    msg_text = f"【Fiona 家務資產報表 {date_str}】\n"
-    msg_text += "-"*15 + "\n"
-    msg_text += "🔥 即將到期提醒：\n" + ("\n".join(soon_list) if soon_list else "🎉 目前狀態正常") + "\n"
-    msg_text += "-"*15 + "\n"
-    msg_text += f"📦 全清單快覽：\n{full_list}"
-    msg_text += "-"*15 + "\n"
-    msg_text += f"📊 詳細彩色報表：\n{report_url}"
-
-    payload = {
-        "to": USER_ID,
-        "messages": [{"type": "text", "text": msg_text}]
+def push_message(token, text):
+    # 完全比照股票腳本的發送邏輯
+    url = "https://api.line.me/v2/bot/message/push"
+    headers = {
+        "Content-Type": "application/json", 
+        "Authorization": f"Bearer {token}"
     }
-    
-    response = requests.post(url, headers=headers, json=payload, timeout=10)
-    if response.status_code == 200:
-        print("✅ LINE 訊息發送成功！")
-    else:
-        print(f"❌ 發送失敗: {response.text}")
+    payload = {
+        "to": USER_ID, 
+        "messages": [{"type": "text", "text": text}]
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        if response.status_code == 200:
+            print("✅ LINE 訊息發送成功！")
+        else:
+            print(f"❌ LINE 發送失敗，狀態碼: {response.status_code}, 原因: {response.text}")
+    except Exception as e:
+        print(f"❌ 網路連線錯誤: {e}")
 
 if __name__ == "__main__":
+    print("🚀 啟動資產檢查任務...")
     soon_l, full_l, d_s = process_data()
-    t = get_channel_access_token()
-    if t:
-        push_message(t, soon_l, full_l, d_s)
+    
+    # 組合訊息文字 (移除可能導致錯誤的特殊網址)
+    msg_text = (
+        f"【Fiona 家務資產報表 {d_s}】\n"
+        f"------------------\n"
+        f"🔥 即將到期提醒：\n"
+        f"{'\n'.join(soon_l) if soon_l else '🎉 目前狀態正常'}\n"
+        f"------------------\n"
+        f"📦 全清單快覽：\n{full_l}"
+        f"------------------"
+    )
+    
+    token = get_channel_access_token()
+    if token:
+        push_message(token, msg_text)
+    else:
+        print("❌ 無法取得 Token，請檢查 CHANNEL_ID 和 CHANNEL_SECRET")
+    
     print("✅ 任務執行完畢")
