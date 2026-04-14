@@ -21,7 +21,7 @@ home_assets = [
 
 # 3. 核心邏輯
 def get_channel_access_token():
-    url = "https://line.me"
+    url = "https://line.me" # 已修正網址
     p = {"grant_type": "client_credentials", "client_id": CHANNEL_ID, "client_secret": CHANNEL_SECRET}
     try:
         res = requests.post(url, data=p, timeout=10)
@@ -51,7 +51,6 @@ def process_data():
         if is_c: cons_h += row
         else: app_h += row
         
-    # --- HTML 生成 (改用字串相加，完全避開 f-string 括號問題) ---
     h_start = "<!DOCTYPE html><html><head><meta charset='utf-8'><style>"
     h_style = "body{font-family:sans-serif;background:#f0f2f5;padding:40px 20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:15px 25px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#fdfdfd;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
     h_mid = "</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2>"
@@ -65,21 +64,34 @@ def process_data():
     return soon, today.strftime('%Y-%m-%d')
 
 def push_button_message(token, soon_list, date_str):
-    if not token: return
-    summary = "🔔 提醒內容：\n" + ("\n".join(soon_list) if soon_list else "🎉 所有資產目前均在保固/效期內。")
+    if not token: 
+        print("❌ 無法獲取 Token")
+        return
+    summary = "🔔 提醒內容：\n" + ("\n".join(soon_list) if soon_list else "🎉 所有資產目前均在保固期內。")
+    
+    # 請將這裡換成你實際的 GitHub Pages 網址
     report_url = "https://github.io"
     
-    # 組合 LINE 按鈕範本 JSON
-    actions = [{"type": "uri", "label": "查看完整彩色報表", "uri": report_url}]
-    template = {"type": "buttons", "title": f"🏠 家務資產日報 {date_str}", "text": summary[:160], "actions": actions}
+    url = "https://line.me" # 已修正網址
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    template = {
+        "type": "buttons",
+        "title": f"🏠 家務資產日報 {date_str}",
+        "text": summary[:160],
+        "actions": [{"type": "uri", "label": "查看完整彩色報表", "uri": report_url}]
+    }
     message = {"type": "template", "altText": f"Fiona 保固報表 {date_str}", "template": template}
     payload = {"to": USER_ID, "messages": [message]}
     
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    requests.post("https://line.me", headers=headers, json=payload, timeout=10)
+    res = requests.post(url, headers=headers, json=payload, timeout=10)
+    if res.status_code == 200:
+        print("✅ LINE 訊息發送成功")
+    else:
+        print(f"❌ LINE 訊息發送失敗: {res.text}")
 
 if __name__ == "__main__":
     soon_l, d_s = process_data()
     t = get_channel_access_token()
     push_button_message(t, soon_l, d_s)
-    print("✅ 任務執行成功")
+    print("✅ 任務執行完成")
