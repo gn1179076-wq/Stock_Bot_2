@@ -7,12 +7,11 @@ from datetime import datetime, timedelta, timezone
 # 1. 安全設定 (動態讀取環境變數)
 # ==========================================
 def get_channel_access_token():
-    # 每次執行時動態抓取，確保抓到 GitHub Actions 注入的 Secrets
     cid = os.getenv("LINE_CHANNEL_ID")
     csecret = os.getenv("LINE_CHANNEL_SECRET")
     
     if not cid or not csecret:
-        print("❌ 錯誤：LINE_CHANNEL_ID 或 SECRET 為空，請檢查 YAML 設定。")
+        print("❌ 錯誤：LINE_CHANNEL_ID 或 SECRET 為空")
         return None
 
     url = "https://line.me"
@@ -74,12 +73,8 @@ def process_data():
             print(f"跳過項目 {item.get('name')}: {e}")
             continue
 
-    if not app_h: app_h = "<tr><td colspan='6' style='text-align:center'>無硬體資料</td></tr>"
-    if not cons_h: cons_h = "<tr><td colspan='6' style='text-align:center'>無耗材資料</td></tr>"
-
     style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
-    
-    html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
+    html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h if app_h else '<tr><td colspan=6>暫無資料</td></tr>'}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h if cons_h else '<tr><td colspan=6>暫無資料</td></tr>'}</tbody></table></div></body></html>"
 
     with open("warranty_report.html", "w", encoding="utf-8") as f:
         f.write(html_template)
@@ -88,18 +83,19 @@ def process_data():
 
 def push_message(token, text):
     user_id = os.getenv("LINE_USER_ID")
-    if not user_id:
-        print("❌ 錯誤：找不到 LINE_USER_ID")
+    if not user_id or not token:
+        print("❌ 缺少 Token 或 User_ID")
         return
 
     url = "https://line.me"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
     
-    # 修正後的 payload
+    # 修正後的 payload 格式 (確保結構完整)
     payload = {
         "to": user_id,
         "messages":
     }
+    
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=15)
         if res.status_code == 200:
@@ -111,15 +107,10 @@ def push_message(token, text):
 
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務...")
-    
-    # 1. 處理資料
     soon_l, full_l, d_s = process_data()
-    
-    # 2. 獲取 Token
     token = get_channel_access_token()
     
     if token:
-        # 3. 組合並發送訊息
         soon_msg = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
         msg_text = (
             f"【Fiona 家務資產報表 {d_s}】\n"
@@ -130,6 +121,5 @@ if __name__ == "__main__":
             f"------------------"
         )
         push_message(token, msg_text)
-        print("✅ 任務執行完畢")
     else:
-        print("❌ 任務中斷：無法取得 LINE Token。")
+        print("❌ 任務失敗：無法取得 Token")
