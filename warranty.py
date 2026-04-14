@@ -13,7 +13,7 @@ home_assets = [
     {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
     {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
     {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
-    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2025-03-01", "warranty_months": 6},
+    {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2025-03-02", "warranty_months": 6},
     {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
