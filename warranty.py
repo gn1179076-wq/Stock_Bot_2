@@ -20,17 +20,19 @@ home_assets = [
 ]
 
 def get_channel_access_token():
-    # 修正：正確的 Token 獲取網址
     url = "https://line.me"
-    p = {
-        "grant_type": "client_credentials", 
-        "client_id": CHANNEL_ID, 
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CHANNEL_ID,
         "client_secret": CHANNEL_SECRET
     }
     try:
-        res = requests.post(url, data=p, timeout=10)
-        return res.json().get("access_token") if res.status_code == 200 else None
-    except: 
+        response = requests.post(url, headers=headers, data=payload, timeout=10)
+        if response.status_code == 200:
+            return response.json().get("access_token")
+        return None
+    except:
         return None
 
 def process_data():
@@ -41,7 +43,6 @@ def process_data():
 
     for item in home_assets:
         p_d = datetime.strptime(item['purchase_date'], "%Y-%m-%d").replace(tzinfo=tz)
-        # 估算到期日 (月份 * 30.44 天)
         e_d = p_d + timedelta(days=item['warranty_months'] * 30.44)
         rem = (e_d - today).days
         is_c = "[耗材]" in item['name']
@@ -60,7 +61,7 @@ def process_data():
         else: app_h += row
         full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
 
-    # 生成 HTML 
+    # 生成 HTML 報表
     style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
     html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
     
@@ -70,17 +71,16 @@ def process_data():
     date_str = today.strftime('%Y-%m-%d')
     return soon_list, full_list_str, date_str
 
-def push_line(token, soon_list, full_list, date_str):
-    if not token or not USER_ID: 
-        print("❌ 缺少 Token 或 USER_ID")
+def push_message(token, soon_list, full_list, date_str):
+    if not token:
+        print("❌ 無法取得 Token")
         return
         
-    # 修正：正確的 Push 訊息網址
     url = "https://line.me"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
     
-    # 組合 LINE 訊息內容
-    report_url = "https://github.io"
+    # 組合訊息
+    report_url = "https://github.io" # 請替換為你的 GitHub Pages 網址
     msg_text = f"【Fiona 家務資產報表 {date_str}】\n"
     msg_text += "-"*15 + "\n"
     msg_text += "🔥 即將到期提醒：\n" + ("\n".join(soon_list) if soon_list else "🎉 目前狀態正常") + "\n"
@@ -89,28 +89,20 @@ def push_line(token, soon_list, full_list, date_str):
     msg_text += "-"*15 + "\n"
     msg_text += f"📊 詳細彩色報表：\n{report_url}"
 
-    # 修正：補齊 messages 清單中的字典物件
     payload = {
         "to": USER_ID,
-        "messages": [
-            {
-                "type": "text",
-                "text": msg_text
-            }
-        ]
+        "messages": [{"type": "text", "text": msg_text}]
     }
     
-    try:
-        res = requests.post(url, headers=headers, json=payload, timeout=10)
-        if res.status_code == 200:
-            print("✅ LINE 訊息發送成功")
-        else:
-            print(f"❌ LINE 發送失敗: {res.text}")
-    except Exception as e:
-        print(f"❌ 發送過程發生錯誤: {e}")
+    response = requests.post(url, headers=headers, json=payload, timeout=10)
+    if response.status_code == 200:
+        print("✅ LINE 訊息發送成功！")
+    else:
+        print(f"❌ 發送失敗: {response.text}")
 
 if __name__ == "__main__":
     soon_l, full_l, d_s = process_data()
     t = get_channel_access_token()
-    push_line(t, soon_l, full_l, d_s)
-    print("✅ 任務執行結束")
+    if t:
+        push_message(t, soon_l, full_l, d_s)
+    print("✅ 任務執行完畢")
