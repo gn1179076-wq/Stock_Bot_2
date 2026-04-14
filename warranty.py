@@ -58,7 +58,9 @@ def process_data():
     html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
     with open("warranty_report.html", "w", encoding="utf-8") as f: f.write(html_template)
     
-    return soon_list, full_list_str, date_str_today := today.strftime('%Y-%m-%d')
+    # 修正：移除海象運算子，確保 Python 版本相容性
+    date_str = today.strftime('%Y-%m-%d')
+    return soon_list, full_list_str, date_str
 
 def push_line(token, soon_list, full_list, date_str):
     if not token: return
@@ -75,7 +77,7 @@ def push_line(token, soon_list, full_list, date_str):
     msg_text += "-"*15 + "\n"
     msg_text += f"📊 詳細彩色報表：\n{report_url}"
 
-    # 修正：補全 payload 的 messages 內容
+    # 組合發送 payload
     payload = {
         "to": USER_ID,
         "messages":
@@ -86,4 +88,4 @@ if __name__ == "__main__":
     soon_l, full_l, d_s = process_data()
     t = get_channel_access_token()
     push_line(t, soon_l, full_l, d_s)
-    print("✅ 任務執行完畢")
+    print("✅ 任務執行成功")
