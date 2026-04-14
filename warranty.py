@@ -312,7 +312,8 @@ def process_data():
 </body>
 </html>"""
 
-    with open("warranty_report.html", "w", encoding="utf-8") as f:
+    os.makedirs("docs", exist_ok=True)
+    with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
     return soon_list, expired_list, full_list_str, today.strftime('%Y-%m-%d')
