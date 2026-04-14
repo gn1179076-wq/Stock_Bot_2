@@ -53,7 +53,7 @@ home_assets = [
 def process_data():
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    app_rows, cons_rows, soon_list, full_list_str = "", "", [], ""
+    app_rows, cons_rows, soon_list, expired_list, full_list_str = "", "", [], [], ""
 
     # 統計數據
     total_items = len(home_assets)
@@ -72,6 +72,7 @@ def process_data():
                 badge_text = "需更換" if is_c else "已過期"
                 icon = "🔴"
                 days_display = '<span class="days-cell danger-text">已逾期</span>'
+                expired_list.append(f"🔴 {item['name']} ({'需更換' if is_c else '已過期'})")
                 danger_count += 1
             elif rem <= 90:
                 badge_class = "warning"
@@ -309,7 +310,7 @@ def process_data():
     with open("warranty_report.html", "w", encoding="utf-8") as f:
         f.write(html)
 
-    return soon_list, full_list_str, today.strftime('%Y-%m-%d')
+    return soon_list, expired_list, full_list_str, today.strftime('%Y-%m-%d')
 
 
 # ==========================================
@@ -346,19 +347,25 @@ def push_message(token, text):
 # ==========================================
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務...")
-    soon_l, full_list_str, d_s = process_data()
+    soon_l, expired_l, full_list_str, d_s = process_data()
     token = get_channel_access_token()
 
     if token:
-        soon_msg = "\n".join(soon_l) if soon_l else "🎉 目前狀態正常"
-        msg_text = (
-            f"【Fiona 家務資產報表 {d_s}】\n"
-            f"------------------\n"
-            f"🔥 即將到期提醒：\n{soon_msg}\n"
-            f"------------------\n"
-            f"📦 全清單快覽：\n{full_list_str}"
-            f"------------------"
-        )
-        push_message(token, msg_text)
+        # 只在有「已到期」或「即將到期」項目時才發送 LINE 通知
+        if expired_l or soon_l:
+            parts = [f"【Fiona 家務提醒 {d_s}】"]
+
+            if expired_l:
+                parts.append("⛔ 已到期 / 需更換：")
+                parts.append("\n".join(expired_l))
+
+            if soon_l:
+                parts.append("⚠️ 即將到期（90天內）：")
+                parts.append("\n".join(soon_l))
+
+            msg_text = "\n------------------\n".join(parts)
+            push_message(token, msg_text)
+        else:
+            print("🎉 全部正常，不發送 LINE 通知")
     else:
         print("❌ 任務失敗：無法取得 Token")
