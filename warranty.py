@@ -51,44 +51,31 @@ def process_data():
         if is_c: cons_h += row
         else: app_h += row
         
-    # --- HTML 生成 (改用 .format 避免 f-string 括號衝突) ---
-    h_style = """
-    <style>
-        body{font-family:sans-serif;background:#f0f2f5;padding:40px 20px} 
-        .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} 
-        .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} 
-        table{width:100%;border-collapse:collapse} th,td{padding:15px 25px;text-align:left;border-top:1px solid #eee;font-size:14px} 
-        th{background:#fdfdfd;color:#95a5a6;font-size:12px} 
-        .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} 
-        .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} 
-        .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}
-    </style>
-    """
-    h_body = f"""
-    <!DOCTYPE html><html><head><meta charset='utf-8'>{h_style}</head><body>
-    <h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2>
-    <div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th style='text-align:center'>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead>
-    <tbody>{app_h}</tbody></table></div>
-    <div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th style='text-align:center'>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead>
-    <tbody>{cons_h}</tbody></table></div></body></html>
-    """
-    with open("warranty_report.html", "w", encoding="utf-8") as f: f.write(h_body)
+    # --- HTML 生成 (改用字串相加，完全避開 f-string 括號問題) ---
+    h_start = "<!DOCTYPE html><html><head><meta charset='utf-8'><style>"
+    h_style = "body{font-family:sans-serif;background:#f0f2f5;padding:40px 20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:15px 25px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#fdfdfd;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
+    h_mid = "</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2>"
+    h_app = f"<div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th style='text-align:center'>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div>"
+    h_cons = f"<div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th style='text-align:center'>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div>"
+    h_end = "</body></html>"
+    
+    with open("warranty_report.html", "w", encoding="utf-8") as f:
+        f.write(h_start + h_style + h_mid + h_app + h_cons + h_end)
     
     return soon, today.strftime('%Y-%m-%d')
 
 def push_button_message(token, soon_list, date_str):
     if not token: return
-    summary = "🔥 即將到期提醒：\n" + ("\n".join(soon_list) if soon_list else "🎉 所有資產目前均在保固/效期內。")
+    summary = "🔔 提醒內容：\n" + ("\n".join(soon_list) if soon_list else "🎉 所有資產目前均在保固/效期內。")
     report_url = "https://github.io"
+    
+    # 組合 LINE 按鈕範本 JSON
+    actions = [{"type": "uri", "label": "查看完整彩色報表", "uri": report_url}]
+    template = {"type": "buttons", "title": f"🏠 家務資產日報 {date_str}", "text": summary[:160], "actions": actions}
+    message = {"type": "template", "altText": f"Fiona 保固報表 {date_str}", "template": template}
+    payload = {"to": USER_ID, "messages": [message]}
+    
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {
-        "to": USER_ID,
-        "messages":,
-                    "actions": [{"type": "uri", "label": "查看完整彩色報表", "uri": report_url}]
-                }
-            }
-        ]
-    }
     requests.post("https://line.me", headers=headers, json=payload, timeout=10)
 
 if __name__ == "__main__":
