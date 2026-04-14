@@ -89,11 +89,10 @@ def push_message(token, text):
         print("❌ 缺少 Token 或 User_ID")
         return
 
-    # 正確的發送網址
     url = "https://line.me"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
     
-    # 修正語法錯誤：補齊 messages 清單內容
+    # 修正後的 payload 結構
     payload = {
         "to": user_id,
         "messages":
@@ -104,7 +103,7 @@ def push_message(token, text):
         if res.status_code == 200:
             print("✅ LINE 訊息發送成功！")
         else:
-            print(f"❌ 發送失敗 ({res.status_code}): {res.text}")
+            print(f"❌ 發送失敗: {res.text}")
     except Exception as e:
         print(f"❌ 網路連線錯誤: {e}")
 
