@@ -53,33 +53,37 @@ def process_data():
         else: app_h += row
         full_list_str += f"{icon} {n}\n   (剩 {max(0, rem)}天)\n"
 
-    # 生成 HTML (CSS 壓縮為單行避免 f-string 衝突)
+    # 生成 HTML 
     style = "body{font-family:sans-serif;background:#f0f2f5;padding:20px} .card{background:#fff;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden;max-width:1000px;margin:auto} .title{padding:15px 25px;background:#fafafa;font-weight:bold;border-left:5px solid #3498db} table{width:100%;border-collapse:collapse} th,td{padding:12px 20px;text-align:left;border-top:1px solid #eee;font-size:14px} th{background:#f8f9fa;color:#95a5a6;font-size:12px} .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold} .safe{background:#eafaf1;color:#27ae60} .warning{background:#fef5e7;color:#f39c12} .danger{background:#fdedec;color:#e74c3c} .expired{background:#f4f6f7;color:#95a5a6}"
-    html = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
-    with open("warranty_report.html", "w", encoding="utf-8") as f: f.write(html)
+    html_template = f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{style}</style></head><body><h2 style='text-align:center'>🏠 Fiona 家務資產管理</h2><div class='card'><div class='title'>📦 硬體設備保固</div><table><thead><tr><th>名稱</th><th>購買日</th><th>月</th><th>到期</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{app_h}</tbody></table></div><div class='card'><div class='title' style='border-left-color:#e67e22'>♻️ 耗材更換追蹤</div><table><thead><tr><th>名稱</th><th>更換日</th><th>月</th><th>下次</th><th>剩餘</th><th>狀態</th></tr></thead><tbody>{cons_h}</tbody></table></div></body></html>"
+    with open("warranty_report.html", "w", encoding="utf-8") as f: f.write(html_template)
     
-    return soon_list, full_list_str, today.strftime('%Y-%m-%d')
+    return soon_list, full_list_str, date_str_today := today.strftime('%Y-%m-%d')
 
 def push_line(token, soon_list, full_list, date_str):
     if not token: return
     url = "https://line.me"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     
-    report_url = "https://github.io"
+    # 組合 LINE 訊息
+    report_url = f"https://github.io"
     msg_text = f"【Fiona 家務資產報表 {date_str}】\n"
     msg_text += "-"*15 + "\n"
-    msg_text += "🔥 即將到期：\n" + ("\n".join(soon_list) if soon_list else "🎉 目前狀態正常") + "\n"
+    msg_text += "🔥 即將到期提醒：\n" + ("\n".join(soon_list) if soon_list else "🎉 目前狀態正常") + "\n"
     msg_text += "-"*15 + "\n"
     msg_text += f"📦 全清單快覽：\n{full_list}"
     msg_text += "-"*15 + "\n"
     msg_text += f"📊 詳細彩色報表：\n{report_url}"
 
-    # 修正語法：補齊 payload 的字典內容
-    payload = {"to": USER_ID, "messages":}
+    # 修正：補全 payload 的 messages 內容
+    payload = {
+        "to": USER_ID,
+        "messages":
+    }
     requests.post(url, headers=headers, json=payload, timeout=10)
 
 if __name__ == "__main__":
     soon_l, full_l, d_s = process_data()
     t = get_channel_access_token()
     push_line(t, soon_l, full_l, d_s)
-    print("✅ 執行完畢")
+    print("✅ 任務執行完畢")
