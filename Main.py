@@ -83,11 +83,12 @@ def get_stock_summary():
 
             roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
 
-            # LINE 文字
+            # LINE 文字（只顯示虧損的股票）
             trend_icon = "🔴" if roi >= 0 else "🟢"
             symbol = {"US": "$", "HK": "HK$", "JP": "¥", "TW": "$"}.get(item['market'], "$")
             cost_p = item['cost_price']
-            details += f"📈 {item['name']}\n   {symbol}{cost_p:,.2f} → {symbol}{current:,.2f} ({trend_icon} {roi:+.1f}%)\n"
+            if roi < 0:
+                details += f"📉 {item['name']}\n   {symbol}{cost_p:,.2f} → {symbol}{current:,.2f} ({roi:+.1f}%)\n"
 
             # HTML 表格行
             display_name = item['name'].split(' ', 1)[-1] if ' ' in item['name'] else item['name']
@@ -121,6 +122,7 @@ def get_stock_summary():
     gold_display = f"${int(gold_twd_per_mace):,}" if gold_twd_per_mace > 0 else "暫無資料"
 
     # ---- LINE 文字訊息 ----
+    loss_section = f"🟢 虧損持股：\n{details}" if details else "🎉 全部持股皆為正報酬！"
     message = (
         f"【Fiona 資產日報】\n"
         f"📅 {current_time}\n"
@@ -132,7 +134,7 @@ def get_stock_summary():
         f"📊 總現值: ${int(total_value):,}\n"
         f"🔥 總損益: ${int(profit_total):,} ({total_trend_icon} {roi_total:+.2f}%)\n"
         f"------------------\n"
-        f"{details}"
+        f"{loss_section}\n"
         f"------------------\n"
         f"📋 完整報告：{REPORT_URL}"
     )
