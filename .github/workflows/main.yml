@@ -2,17 +2,20 @@ name: Vic_Daily_Report
 
 on:
   schedule:
-    # 每天台灣時間 17:17 執行 (UTC 09:17)
     - cron: '17 9 * * *'
-  workflow_dispatch: # 允許手動執行測試
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    # 確保 Git Push 有權限
     permissions:
       contents: write
+    
+    # 修正：把 env 放到這裡，這是最穩定的全域寫法
+    env:
+      LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
+      LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
+      LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
     steps:
       - name: 檢查程式碼
@@ -24,10 +27,8 @@ jobs:
           python-version: '3.11'
 
       - name: 安裝必要套件
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      # 2. 執行「資產日報」 (Main.py)
       - name: 執行「資產日報」 (Main.py)
         uses: nick-fields/retry@v3
         with:
@@ -35,12 +36,7 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           command: python Main.py
-        env:
-          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
-          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
-          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
-      # 3. 執行「保固追蹤」 (warranty.py)
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
         with:
@@ -48,20 +44,7 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           command: python warranty.py
-        env:
-          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
-          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
-          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
-      # 4. 儲存 HTML 到 Artifacts (備份)
-      - name: 儲存保固報表到 Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Warranty-Report
-          path: warranty_report.html
-          retention-days: 7
-
-      # 5. 將 HTML 存回 Repo (讓 GitHub Pages 更新)
       - name: 將 HTML 自動存回檔案庫
         run: |
           git config --local user.email "action@github.com"
