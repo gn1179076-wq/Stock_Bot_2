@@ -4,13 +4,12 @@ on:
   schedule:
     # 每天台灣時間 17:17 執行 (UTC 09:17) 
     - cron: '17 9 * * *'
-  workflow_dispatch: # 讓你隨時可以手動點擊執行測試
+  workflow_dispatch: # 手動執行測試
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
-    # 這裡設定全域環境變數，讓下方的所有程式都能共用 Secrets
     env:
       LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
       LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
@@ -32,15 +31,23 @@ jobs:
       - name: 執行「資產日報」 (Main.py)
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 10     # 執行超時限制
-          max_attempts: 3          # 失敗後最多重試 3 次
-          retry_wait_seconds: 60   # 失敗後等待 60 秒再試
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 60
           command: python Main.py
 
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 10     # 執行超時限制
-          max_attempts: 3          # 失敗後最多重試 3 次
-          retry_wait_seconds: 60   # 失敗後等待 60 秒再試
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 60
           command: python warranty.py
+
+      # --- 新增：將產出的 HTML 存為 Artifact ---
+      - name: 儲存保固報表 HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: Warranty-Report-${{ github.run_id }}  # 檔案包名稱，加上 ID 方便區分
+          path: warranty_report.html                  # 程式產出的檔案路徑
+          retention-days: 7                           # 檔案保留天數（預設 90 天，建議改短一點）
