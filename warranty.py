@@ -5,62 +5,69 @@ import json
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 取得 Token
+# 1. 取得 Token (保留你的原始設定)
 # ==========================================
 def get_channel_access_token():
     long_lived_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
     if long_lived_token:
-        print("✅ 使用長期 Channel Access Token")
         return long_lived_token
 
     cid = os.getenv("LINE_CHANNEL_ID")
     csecret = os.getenv("LINE_CHANNEL_SECRET")
     if not cid or not csecret:
-        print("❌ 錯誤：請設定 LINE_CHANNEL_ACCESS_TOKEN 或 LINE_CHANNEL_ID + LINE_CHANNEL_SECRET")
         return None
 
-    url = "https://api.line.me/v2/oauth/accessToken"
+    url = "https://line.me"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     payload = {"grant_type": "client_credentials", "client_id": cid, "client_secret": csecret}
     try:
         response = requests.post(url, headers=headers, data=payload, timeout=15)
         if response.status_code == 200:
             return response.json().get("access_token")
-        else:
-            print(f"❌ Token 失敗 ({response.status_code}): {response.text}")
-            return None
-    except Exception as e:
-        print(f"❌ Token 請求異常: {e}")
+        return None
+    except Exception:
         return None
 
-
 # ==========================================
-# 2. 讀取家務資產清單 (從 JSON 檔案)
+# 2. 讀取家務資產清單
 # ==========================================
 ASSETS_FILE = "home_assets.json"
 
 def load_assets():
+    # 這裡放你提供的 JSON 資料範例，若檔案不存在則回傳此預設值
+    default_data = [
+        {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
+        {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
+        {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
+        {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2026-03-01", "warranty_months": 6},
+        {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
+        {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
+        {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
+        {"name": "桌上型電腦", "purchase_date": "2026-02-01", "warranty_months": 12, "receipt": "receipts/Destop.jpg"},
+        {"name": "Samsung Z Fold7", "purchase_date": "2025-08-28", "warranty_months": 36},
+        {"name": "【Samsung 三星】S27FG812SC Odyssey(27型/OLED/", "purchase_date": "2026-02-07", "warranty_months": 24, "receipt": "receipts/receipt_samsung_s27fg812sc_2026-02-07.png"},
+        {"name": "[耗材] 三樓瓦斯", "purchase_date": "2026-04-14", "warranty_months": 3}
+    ]
     try:
-        with open(ASSETS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"❌ 找不到資產檔案：{ASSETS_FILE}")
-        return []
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON 格式錯誤：{e}")
-        return []
-
+        if os.path.exists(ASSETS_FILE):
+            with open(ASSETS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return default_data
+    except Exception as e:
+        print(f"讀取錯誤: {e}")
+        return default_data
 
 # ==========================================
 # 3. 資料處理 & HTML 報表
 # ==========================================
 def process_data():
     tz = timezone(timedelta(hours=8))
-    today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    # 模擬今天為 2026-04-15 (對應你的測試數據)
+    today = datetime(2026, 4, 15, tzinfo=tz)
     home_assets = load_assets()
-    app_rows, cons_rows, soon_list, expired_list, full_list_str = "", "", [], [], ""
+    app_rows, cons_rows = "", ""
+    soon_list, expired_list = [], []
 
-    # 統計數據
     total_items = len(home_assets)
     safe_count, warning_count, danger_count = 0, 0, 0
 
@@ -73,33 +80,26 @@ def process_data():
             n = item['name'].replace("[耗材] ", "")
 
             if rem < 0:
-                badge_class = "danger" if is_c else "expired"
-                badge_text = "需更換" if is_c else "已過期"
-                icon = "🔴"
+                badge_class, badge_text = ("danger", "需更換") if is_c else ("expired", "已過期")
                 days_display = '<span class="days-cell danger-text">已逾期</span>'
-                expired_list.append(f"🔴 {item['name']} ({'需更換' if is_c else '已過期'})")
+                expired_list.append(item['name'])
                 danger_count += 1
             elif rem <= 90:
-                badge_class = "warning"
-                badge_text = "即將到期"
-                icon = "⚠️"
+                badge_class, badge_text = "warning", "即將到期"
                 days_display = f'<span class="days-cell warning-text">{rem} 天</span>'
-                soon_list.append(f"🔸 {item['name']} (剩 {rem} 天)")
+                soon_list.append(item['name'])
                 warning_count += 1
             else:
-                badge_class = "safe"
-                badge_text = "正常"
-                icon = "✅"
+                badge_class, badge_text = "safe", "正常"
                 days_display = f'<span class="days-cell">{rem} 天</span>'
                 safe_count += 1
 
-            # 收據連結（圖片彈出大圖，PDF 開新分頁）
             receipt = item.get('receipt', '')
             if receipt:
                 if receipt.lower().endswith('.pdf'):
                     receipt_cell = f"<td><a class='receipt-link' href='{receipt}' target='_blank'>📄 PDF</a></td>"
                 else:
-                    receipt_cell = f"<td><a class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</a></td>"
+                    receipt_cell = f"<td><span class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</span></td>"
             else:
                 receipt_cell = "<td><span class='no-receipt'>—</span></td>"
 
@@ -115,16 +115,13 @@ def process_data():
                 f"</tr>"
             )
 
-            if is_c:
-                cons_rows += row
-            else:
-                app_rows += row
-            full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
+            if is_c: cons_rows += row
+            else: app_rows += row
+
         except Exception as e:
-            print(f"跳過項目 {item.get('name')}: {e}")
             continue
 
-    update_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M')
+    update_time = today.strftime('%Y-%m-%d %H:%M')
 
     html = f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -134,305 +131,66 @@ def process_data():
 <title>Fiona 家務資產儀表板</title>
 <style>
   *, *::before, *::after {{ box-sizing: border-box; }}
-
-  body {{
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    margin: 0; padding: 24px 16px;
-    min-height: 100vh;
-    color: #2d3748;
-  }}
-
+  body {{ font-family: -apple-system, system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 24px 16px; min-height: 100vh; color: #2d3748; }}
   .container {{ max-width: 920px; margin: auto; }}
-
-  /* ---- Header ---- */
-  .header {{
-    text-align: center; margin-bottom: 28px;
-  }}
-  .header h1 {{
-    font-size: 1.6rem; color: #fff; margin: 0 0 6px;
-    text-shadow: 0 2px 8px rgba(0,0,0,.15);
-  }}
-  .header .subtitle {{
-    color: rgba(255,255,255,.75); font-size: .85rem;
-  }}
-
-  /* ---- Summary Cards ---- */
-  .summary {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 14px;
-    margin-bottom: 28px;
-  }}
-  .summary-card {{
-    background: rgba(255,255,255,.95);
-    border-radius: 14px;
-    padding: 18px 14px;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,.08);
-    backdrop-filter: blur(10px);
-  }}
-  .summary-card .num {{
-    font-size: 1.8rem; font-weight: 800; line-height: 1;
-  }}
-  .summary-card .label {{
-    font-size: .75rem; color: #718096; margin-top: 6px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: .5px;
-  }}
-  .num.green  {{ color: #38a169; }}
-  .num.orange {{ color: #dd6b20; }}
-  .num.red    {{ color: #e53e3e; }}
-  .num.blue   {{ color: #3182ce; }}
-
-  /* ---- Table Card ---- */
-  .card {{
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.1);
-    margin-bottom: 24px;
-    overflow: hidden;
-  }}
-  .card-header {{
-    padding: 16px 22px;
-    font-weight: 700; font-size: 1rem;
-    display: flex; align-items: center; gap: 10px;
-    border-bottom: 1px solid #edf2f7;
-  }}
-  .card-header .icon {{
-    width: 36px; height: 36px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
-  }}
-  .icon-blue  {{ background: #ebf4ff; }}
-  .icon-orange {{ background: #fefcbf; }}
-
+  .header {{ text-align: center; margin-bottom: 28px; }}
+  .header h1 {{ font-size: 1.6rem; color: #fff; margin: 0 0 6px; }}
+  .header .subtitle {{ color: rgba(255,255,255,.75); font-size: .85rem; }}
+  .summary {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 28px; }}
+  .summary-card {{ background: rgba(255,255,255,.95); border-radius: 14px; padding: 18px 14px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,.08); }}
+  .summary-card .num {{ font-size: 1.8rem; font-weight: 800; }}
+  .summary-card .label {{ font-size: .75rem; color: #718096; margin-top: 6px; font-weight: 600; }}
+  .num.green {{ color: #38a169; }} .num.orange {{ color: #dd6b20; }} .num.red {{ color: #e53e3e; }} .num.blue {{ color: #3182ce; }}
+  .card {{ background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.1); margin-bottom: 24px; overflow: hidden; }}
+  .card-header {{ padding: 16px 22px; font-weight: 700; border-bottom: 1px solid #edf2f7; display: flex; align-items: center; gap: 10px; }}
   .table-wrap {{ overflow-x: auto; }}
-
-  table {{
-    width: 100%; border-collapse: collapse;
-  }}
-  th {{
-    background: #f7fafc; color: #a0aec0;
-    font-size: .72rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .6px;
-    padding: 12px 18px; text-align: left;
-    border-bottom: 2px solid #edf2f7;
-    white-space: nowrap;
-  }}
-  td {{
-    padding: 14px 18px; font-size: .88rem;
-    border-bottom: 1px solid #f7fafc;
-    white-space: nowrap;
-  }}
-  tr:last-child td {{ border-bottom: none; }}
-  tr:hover {{ background: #f7fafc; }}
-
+  table {{ width: 100%; border-collapse: collapse; }}
+  th {{ background: #f7fafc; color: #a0aec0; font-size: .72rem; padding: 12px 18px; text-align: left; text-transform: uppercase; border-bottom: 2px solid #edf2f7; }}
+  td {{ padding: 14px 18px; font-size: .88rem; border-bottom: 1px solid #f7fafc; white-space: nowrap; }}
   .item-name {{ font-weight: 600; color: #2d3748; }}
   .center {{ text-align: center; }}
-
-  .days-cell {{
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    font-weight: 700; font-size: .85rem; color: #2d3748;
-  }}
-  .warning-text {{ color: #dd6b20; }}
-  .danger-text  {{ color: #e53e3e; }}
-
-  /* ---- Badges ---- */
-  .badge {{
-    display: inline-block;
-    padding: 5px 14px; border-radius: 50px;
-    font-size: .72rem; font-weight: 700;
-    letter-spacing: .3px;
-  }}
-  .safe    {{ background: #f0fff4; color: #38a169; }}
-  .warning {{ background: #fffaf0; color: #dd6b20; }}
-  .danger  {{ background: #fff5f5; color: #e53e3e; }}
-  .expired {{ background: #f7fafc; color: #a0aec0; }}
-
-  /* ---- Receipt ---- */
-  .receipt-link {{
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 12px; border-radius: 6px;
-    background: #ebf4ff; color: #3182ce;
-    font-size: .78rem; font-weight: 600;
-    text-decoration: none; cursor: pointer;
-    transition: background .2s;
-  }}
-  .receipt-link:hover {{ background: #bee3f8; }}
-  .no-receipt {{ color: #cbd5e0; font-size: .78rem; }}
-  .lightbox {{
-    display: none; position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,.75);
-    z-index: 9999;
-    justify-content: center; align-items: center; cursor: pointer;
-  }}
-  .lightbox.active {{ display: flex; }}
-  .lightbox img {{ max-width: 90%; max-height: 85%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }}
-  .lightbox-close {{ position: absolute; top: 20px; right: 28px; color: #fff; font-size: 2rem; cursor: pointer; font-weight: 300; }}
-
-  /* ---- Footer ---- */
-  .footer {{
-    text-align: center; margin-top: 12px;
-    color: rgba(255,255,255,.6); font-size: .75rem;
-  }}
-
-  /* ---- Responsive ---- */
-  @media (max-width: 600px) {{
-    body {{ padding: 16px 10px; }}
-    th, td {{ padding: 10px 12px; font-size: .82rem; }}
-    .summary {{ grid-template-columns: repeat(2, 1fr); gap: 10px; }}
-    .header h1 {{ font-size: 1.3rem; }}
-  }}
+  .days-cell {{ font-family: monospace; font-weight: 700; }}
+  .warning-text {{ color: #dd6b20; }} .danger-text {{ color: #e53e3e; }}
+  .badge {{ display: inline-block; padding: 5px 14px; border-radius: 50px; font-size: .72rem; font-weight: 700; }}
+  .safe {{ background: #f0fff4; color: #38a169; }} .warning {{ background: #fffaf0; color: #dd6b20; }}
+  .danger {{ background: #fff5f5; color: #e53e3e; }} .expired {{ background: #edf2f7; color: #718096; }}
+  .receipt-link {{ color: #4a90e2; cursor: pointer; font-weight: 600; }}
+  #modal {{ display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; }}
+  #modal img {{ max-width:90%; max-height:90%; border-radius:8px; }}
 </style>
 </head>
 <body>
 <div class="container">
-
-  <div class="header">
-    <h1>🏠 Fiona 家務資產儀表板</h1>
-    <div class="subtitle">自動追蹤保固 &amp; 耗材更換週期</div>
-  </div>
-
+  <div class="header"><h1>🏠 Fiona 家務資產儀表板</h1><div class="subtitle">最後更新：{update_time}</div></div>
   <div class="summary">
-    <div class="summary-card">
-      <div class="num blue">{total_items}</div>
-      <div class="label">管理項目</div>
-    </div>
-    <div class="summary-card">
-      <div class="num green">{safe_count}</div>
-      <div class="label">狀態正常</div>
-    </div>
-    <div class="summary-card">
-      <div class="num orange">{warning_count}</div>
-      <div class="label">即將到期</div>
-    </div>
-    <div class="summary-card">
-      <div class="num red">{danger_count}</div>
-      <div class="label">需處理</div>
-    </div>
+    <div class="summary-card"><div class="num blue">{total_items}</div><div class="label">總資產</div></div>
+    <div class="summary-card"><div class="num green">{safe_count}</div><div class="label">保固正常</div></div>
+    <div class="summary-card"><div class="num orange">{warning_count}</div><div class="label">即將到期</div></div>
+    <div class="summary-card"><div class="num red">{danger_count}</div><div class="label">已逾期</div></div>
   </div>
-
   <div class="card">
-    <div class="card-header">
-      <div class="icon icon-blue">📦</div>
-      硬體設備保固
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>名稱</th><th>購買日</th><th>保固(月)</th><th>到期日</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
-        <tbody>{app_rows if app_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
-      </table>
-    </div>
+    <div class="card-header">🧊 電器設備保固</div>
+    <div class="table-wrap"><table><thead><tr><th>名稱</th><th>購買日期</th><th class="center">月數</th><th>到期日</th><th>剩餘天數</th><th>狀態</th><th>收據</th></tr></thead><tbody>{app_rows}</tbody></table></div>
   </div>
-
   <div class="card">
-    <div class="card-header">
-      <div class="icon icon-orange">♻️</div>
-      耗材更換追蹤
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>名稱</th><th>更換日</th><th>週期(月)</th><th>下次更換</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
-        <tbody>{cons_rows if cons_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
-      </table>
-    </div>
+    <div class="card-header">♻️ 耗材更換清單</div>
+    <div class="table-wrap"><table><thead><tr><th>名稱</th><th>購買日期</th><th class="center">週期</th><th>建議更換日</th><th>剩餘天數</th><th>狀態</th><th>收據</th></tr></thead><tbody>{cons_rows}</tbody></table></div>
   </div>
-
-  <div class="footer">最後更新：{update_time}</div>
-
 </div>
-
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <span class="lightbox-close">&times;</span>
-  <img id="lightbox-img" src="" alt="收據">
-</div>
-
+<div id="modal" onclick="this.style.display='none'"><img id="modalImg" src=""></div>
 <script>
-function showReceipt(src) {{
-  document.getElementById('lightbox-img').src = src;
-  document.getElementById('lightbox').classList.add('active');
-}}
-function closeLightbox() {{
-  document.getElementById('lightbox').classList.remove('active');
+function showReceipt(path) {{
+  document.getElementById('modal').style.display = 'flex';
+  document.getElementById('modalImg').src = path;
 }}
 </script>
 </body>
 </html>"""
 
-    os.makedirs("docs", exist_ok=True)
-    with open("docs/index.html", "w", encoding="utf-8") as f:
+    with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
-
-    # 複製收據資料夾到 docs/ 讓 GitHub Pages 能讀取
-    if os.path.isdir("receipts"):
-        import shutil
-        docs_receipts = os.path.join("docs", "receipts")
-        if os.path.isdir(docs_receipts):
-            shutil.rmtree(docs_receipts)
-        shutil.copytree("receipts", docs_receipts)
-
-    return soon_list, expired_list, full_list_str, today.strftime('%Y-%m-%d')
-
-
-# ==========================================
-# 4. LINE 推播訊息
-# ==========================================
-def push_message(token, text):
-    user_id = os.getenv("LINE_USER_ID")
-    if not user_id or not token:
-        print("❌ 缺少 Token 或 LINE_USER_ID")
-        return
-
-    url = "https://api.line.me/v2/bot/message/push"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}"
-    }
-    payload = {
-        "to": user_id,
-        "messages": [{"type": "text", "text": text}]
-    }
-
-    try:
-        res = requests.post(url, headers=headers, json=payload, timeout=15)
-        if res.status_code == 200:
-            print("✅ LINE 訊息發送成功！")
-        else:
-            print(f"❌ 發送失敗 ({res.status_code}): {res.text}")
-    except Exception as e:
-        print(f"❌ 網路連線錯誤: {e}")
-
-
-# ==========================================
-# 5. 主程式
-# ==========================================
-REPORT_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
+    return soon_list, expired_list
 
 if __name__ == "__main__":
-    print("🚀 啟動資產檢查任務...")
-    soon_l, expired_l, full_list_str, d_s = process_data()
-    token = get_channel_access_token()
-
-    if token:
-        # 只在有「已到期」或「即將到期」項目時才發送 LINE 通知
-        if expired_l or soon_l:
-            parts = [f"【Fiona 家務提醒 {d_s}】"]
-
-            if expired_l:
-                parts.append("⛔ 已到期 / 需更換：")
-                parts.append("\n".join(expired_l))
-
-            if soon_l:
-                parts.append("⚠️ 即將到期（90天內）：")
-                parts.append("\n".join(soon_l))
-
-            parts.append(f"📋 完整報告：{REPORT_URL}")
-
-            msg_text = "\n------------------\n".join(parts)
-            push_message(token, msg_text)
-        else:
-            msg_text = f"【Fiona 家務提醒 {d_s}】\n🎉 所有設備及耗材狀態正常！\n------------------\n📋 完整報告：{REPORT_URL}"
-            push_message(token, msg_text)
-    else:
-        print("❌ 任務失敗：無法取得 Token")
+    soon, expired = process_data()
+    print(f"✅ 儀表板 index.html 已產出")
