@@ -93,10 +93,13 @@ def process_data():
                 days_display = f'<span class="days-cell">{rem} 天</span>'
                 safe_count += 1
 
-            # 收據連結
+            # 收據連結（圖片彈出大圖，PDF 開新分頁）
             receipt = item.get('receipt', '')
             if receipt:
-                receipt_cell = f"<td><a class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</a></td>"
+                if receipt.lower().endswith('.pdf'):
+                    receipt_cell = f"<td><a class='receipt-link' href='{receipt}' target='_blank'>📄 PDF</a></td>"
+                else:
+                    receipt_cell = f"<td><a class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</a></td>"
             else:
                 receipt_cell = "<td><span class='no-receipt'>—</span></td>"
 
@@ -360,6 +363,14 @@ function closeLightbox() {{
     os.makedirs("docs", exist_ok=True)
     with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(html)
+
+    # 複製收據資料夾到 docs/ 讓 GitHub Pages 能讀取
+    if os.path.isdir("receipts"):
+        import shutil
+        docs_receipts = os.path.join("docs", "receipts")
+        if os.path.isdir(docs_receipts):
+            shutil.rmtree(docs_receipts)
+        shutil.copytree("receipts", docs_receipts)
 
     return soon_list, expired_list, full_list_str, today.strftime('%Y-%m-%d')
 
