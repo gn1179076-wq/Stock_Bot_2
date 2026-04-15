@@ -79,7 +79,7 @@ def process_data():
                 days_display = '<span class="days-cell danger-text">已逾期</span>'
                 expired_list.append(f"🔴 {item['name']} ({'需更換' if is_c else '已過期'})")
                 danger_count += 1
-            elif rem <= 90:
+            elif rem <= 20:
                 badge_class = "warning"
                 badge_text = "即將到期"
                 icon = "⚠️"
@@ -424,7 +424,7 @@ if __name__ == "__main__":
                 parts.append("\n".join(expired_l))
 
             if soon_l:
-                parts.append("⚠️ 即將到期（90天內）：")
+                parts.append("⚠️ 即將到期（20天內）：")
                 parts.append("\n".join(soon_l))
 
             parts.append(f"📋 完整報告：{REPORT_URL}")
