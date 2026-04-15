@@ -312,7 +312,7 @@ def get_stock_summary():
 </div>
 
 <script>
-const HASH = '033fa52c0bcdbc13808711d63ff3ebac31b7a38c2092156a4e6d176d8d4ea969b9f4634566cedf3b92cd4ac5a54d398b8e80d5a95da41e0fc9ed40f289063bcf';
+const HASH = 'd46f8caeb0a0bab98cb603cc792cd40d658b42934d9b289553f5fdb93ae35e52acc524fb8efb5cf215bbdc966e14963c408a7c89fa7d140f8e71a290a50d49dc';
 async function sha512(str) {{
   const buf = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
