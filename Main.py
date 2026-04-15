@@ -1,430 +1,295 @@
 # -*- coding: utf-8 -*-
+import yfinance as yf
 import requests
 import os
+import math
 import json
 from datetime import datetime, timedelta, timezone
 
-# ==========================================
-# 1. 取得 Token
-# ==========================================
-def get_channel_access_token():
-    long_lived_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-    if long_lived_token:
-        print("✅ 使用長期 Channel Access Token")
-        return long_lived_token
 
-    cid = os.getenv("LINE_CHANNEL_ID")
-    csecret = os.getenv("LINE_CHANNEL_SECRET")
-    if not cid or not csecret:
-        print("❌ 錯誤：請設定 LINE_CHANNEL_ACCESS_TOKEN 或 LINE_CHANNEL_ID + LINE_CHANNEL_SECRET")
-        return None
+# ==========================================
+# 1. 安全設定區
+# ==========================================
+CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
+CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+USER_ID = os.getenv("LINE_USER_ID")
+REPORT_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
 
-    url = "https://api.line.me/v2/oauth/accessToken"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    payload = {"grant_type": "client_credentials", "client_id": cid, "client_secret": csecret}
+PORTFOLIO_FILE = "portfolio.json"
+
+def load_portfolio():
     try:
-        response = requests.post(url, headers=headers, data=payload, timeout=15)
-        if response.status_code == 200:
-            return response.json().get("access_token")
-        else:
-            print(f"❌ Token 失敗 ({response.status_code}): {response.text}")
-            return None
-    except Exception as e:
-        print(f"❌ Token 請求異常: {e}")
-        return None
-
-
-# ==========================================
-# 2. 讀取家務資產清單 (從 JSON 檔案)
-# ==========================================
-ASSETS_FILE = "home_assets.json"
-
-def load_assets():
-    try:
-        with open(ASSETS_FILE, "r", encoding="utf-8") as f:
+        with open(PORTFOLIO_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"❌ 找不到資產檔案：{ASSETS_FILE}")
+        print(f"❌ 找不到持股檔案：{PORTFOLIO_FILE}")
         return []
     except json.JSONDecodeError as e:
         print(f"❌ JSON 格式錯誤：{e}")
         return []
 
+def get_channel_access_token():
+    url = "https://api.line.me/v2/oauth/accessToken"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CHANNEL_ID,
+        "client_secret": CHANNEL_SECRET
+    }
+    response = requests.post(url, headers=headers, data=payload)
+    if response.status_code == 200:
+        return response.json().get("access_token")
+    return None
+
 
 # ==========================================
-# 3. 資料處理 & HTML 報表
+# 2. 抓取資料 & 產生 LINE 訊息 + HTML 報表
 # ==========================================
-def process_data():
-    tz = timezone(timedelta(hours=8))
-    today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    home_assets = load_assets()
-    app_rows, cons_rows, soon_list, expired_list, full_list_str = "", "", [], [], ""
+def get_stock_summary():
+    print("正在分析資產狀況與黃金價格...")
+    portfolio_data = load_portfolio()
 
-    # 統計數據
-    total_items = len(home_assets)
-    safe_count, warning_count, danger_count = 0, 0, 0
+    rates = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
+    gold_usd = 0.0
+    gold_twd_per_mace = 0.0
 
-    for item in home_assets:
+    try:
+        data = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X", "GC=F"], period="5d", progress=False, timeout=15, threads=False)
+        if not data.empty:
+            last_data = data['Close'].ffill().iloc[-1]
+            if not math.isnan(last_data.get("USDTWD=X", float('nan'))): rates["US"] = float(last_data["USDTWD=X"])
+            if not math.isnan(last_data.get("HKDTWD=X", float('nan'))): rates["HK"] = float(last_data["HKDTWD=X"])
+            if not math.isnan(last_data.get("JPYTWD=X", float('nan'))): rates["JP"] = float(last_data["JPYTWD=X"])
+
+            gold_usd_raw = last_data.get("GC=F", 0)
+            if not math.isnan(gold_usd_raw):
+                gold_usd = float(gold_usd_raw)
+                gold_twd_per_mace = (gold_usd / 31.1035 * 3.75) * rates["US"]
+    except Exception as e:
+        print(f"匯率抓取失敗: {e}")
+
+    total_cost, total_value = 0.0, 0.0
+    details = ""
+    html_rows = ""
+
+    for item in portfolio_data:
         try:
-            p_d = datetime.strptime(item['purchase_date'], "%Y-%m-%d").replace(tzinfo=tz)
-            e_d = p_d + timedelta(days=item['warranty_months'] * 30.44)
-            rem = (e_d - today).days
-            is_c = "[耗材]" in item['name']
-            n = item['name'].replace("[耗材] ", "")
+            stock = yf.Ticker(item['ticker'])
+            hist = stock.history(period="5d")
+            current = hist['Close'].ffill().iloc[-1] if not hist.empty else item['cost_price']
 
-            if rem < 0:
-                badge_class = "danger" if is_c else "expired"
-                badge_text = "需更換" if is_c else "已過期"
-                icon = "🔴"
-                days_display = '<span class="days-cell danger-text">已逾期</span>'
-                expired_list.append(f"🔴 {item['name']} ({'需更換' if is_c else '已過期'})")
-                danger_count += 1
-            elif rem <= 90:
-                badge_class = "warning"
-                badge_text = "即將到期"
-                icon = "⚠️"
-                days_display = f'<span class="days-cell warning-text">{rem} 天</span>'
-                soon_list.append(f"🔸 {item['name']} (剩 {rem} 天)")
-                warning_count += 1
-            else:
-                badge_class = "safe"
-                badge_text = "正常"
-                icon = "✅"
-                days_display = f'<span class="days-cell">{rem} 天</span>'
-                safe_count += 1
+            rate = rates.get(item['market'], 1.0)
+            c_twd = item['shares'] * item['cost_price'] * rate
+            v_twd = item['shares'] * current * rate
 
-            # 收據連結（圖片彈出大圖，PDF 開新分頁）
-            receipt = item.get('receipt', '')
-            if receipt:
-                if receipt.lower().endswith('.pdf'):
-                    receipt_cell = f"<td><a class='receipt-link' href='{receipt}' target='_blank'>📄 PDF</a></td>"
-                else:
-                    receipt_cell = f"<td><a class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</a></td>"
-            else:
-                receipt_cell = "<td><span class='no-receipt'>—</span></td>"
+            total_cost += c_twd
+            total_value += v_twd
 
-            row = (
+            roi = ((v_twd - c_twd) / c_twd) * 100 if c_twd != 0 else 0
+
+            # LINE 文字（只顯示虧損的股票）
+            trend_icon = "🔴" if roi >= 0 else "🟢"
+            symbol = {"US": "$", "HK": "HK$", "JP": "¥", "TW": "$"}.get(item['market'], "$")
+            cost_p = item['cost_price']
+            if roi < 0:
+                details += f"📉 {item['name']}\n   {symbol}{cost_p:,.2f} → {symbol}{current:,.2f} ({roi:+.1f}%)\n"
+
+            # HTML 表格行
+            display_name = item['name'].split(' ', 1)[-1] if ' ' in item['name'] else item['name']
+            ticker_display = item['ticker'].replace('.TW', '').replace('.HK', '').replace('.T', '')
+            market_tag_class = {"TW": "tag-tw", "US": "tag-us", "HK": "tag-hk", "JP": "tag-jp"}.get(item['market'], "tag-tw")
+            badge_class = "badge-up" if roi >= 0 else "badge-down"
+            sign = "+" if roi >= 0 else ""
+
+            html_rows += (
                 f"<tr>"
-                f"<td><div class='item-name'>{n}</div></td>"
-                f"<td>{item['purchase_date']}</td>"
-                f"<td class='center'>{item['warranty_months']}</td>"
-                f"<td>{e_d.strftime('%Y-%m-%d')}</td>"
-                f"<td>{days_display}</td>"
-                f"<td><span class='badge {badge_class}'>{badge_text}</span></td>"
-                f"{receipt_cell}"
+                f"<td><div class='stock-name'>{display_name}</div><div class='stock-ticker'>{item['ticker']}</div></td>"
+                f"<td><span class='market-tag {market_tag_class}'>{item['market']}</span></td>"
+                f"<td class='right mono'>{item['shares']:,}</td>"
+                f"<td class='right mono'>{symbol}{cost_p:,.2f}</td>"
+                f"<td class='right mono'>{symbol}{current:,.2f}</td>"
+                f"<td class='right mono'>${int(v_twd):,}</td>"
+                f"<td class='right'><span class='badge {badge_class}'>{sign}{roi:.1f}%</span></td>"
                 f"</tr>"
             )
 
-            if is_c:
-                cons_rows += row
-            else:
-                app_rows += row
-            full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
         except Exception as e:
-            print(f"跳過項目 {item.get('name')}: {e}")
+            print(f"處理 {item['name']} 時出錯: {e}")
             continue
 
-    update_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M')
+    profit_total = total_value - total_cost
+    roi_total = (profit_total / total_cost) * 100 if total_cost > 0 else 0
+    total_trend_icon = "🔴" if profit_total >= 0 else "🟢"
+
+    tw_tz = timezone(timedelta(hours=8))
+    current_time = datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M:%S')
+    gold_display = f"${int(gold_twd_per_mace):,}" if gold_twd_per_mace > 0 else "暫無資料"
+
+    # ---- LINE 文字訊息 ----
+    loss_section = f"🟢 虧損持股：\n{details}" if details else "🎉 全部持股皆為正報酬！"
+    message = (
+        f"【Fiona 資產日報】\n"
+        f"📅 {current_time}\n"
+        f"------------------\n"
+        f"🟡 國際金價: ${gold_usd:.1f} (USD)\n"
+        f"💰 台灣金價: {gold_display} (TWD/錢)\n"
+        f"💱 美元匯率: {rates['US']:.2f} (USD/TWD)\n"
+        f"💱 日幣匯率: {rates['JP']:.4f} (JPY/TWD)\n"
+        f"------------------\n"
+        f"💰 總投入: ${int(total_cost):,}\n"
+        f"📊 總現值: ${int(total_value):,}\n"
+        f"🔥 總損益: ${int(profit_total):,} ({total_trend_icon} {roi_total:+.2f}%)\n"
+        f"------------------\n"
+        f"{loss_section}\n"
+        f"------------------\n"
+        f"📋 完整報告：{REPORT_URL}"
+    )
+
+    # ---- HTML 儀表板 ----
+    profit_color = "text-green" if profit_total >= 0 else "text-red"
+    profit_sign = "+" if profit_total >= 0 else ""
+    usd_twd_display = f"{rates['US']:.2f}"
+    jpy_twd_display = f"{rates['JP']:.4f}"
 
     html = f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fiona 家務資產儀表板</title>
+<title>Fiona 資產日報</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@500;700&display=swap');
   *, *::before, *::after {{ box-sizing: border-box; }}
-
   body {{
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    margin: 0; padding: 24px 16px;
-    min-height: 100vh;
-    color: #2d3748;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0f1117; margin: 0; padding: 24px 16px;
+    min-height: 100vh; color: #e2e8f0;
   }}
-
-  .container {{ max-width: 920px; margin: auto; }}
-
-  /* ---- Header ---- */
-  .header {{
-    text-align: center; margin-bottom: 28px;
+  .container {{ max-width: 960px; margin: auto; }}
+  .header {{ text-align: center; margin-bottom: 32px; }}
+  .header h1 {{ font-size: 1.5rem; font-weight: 700; color: #f7fafc; margin: 0 0 4px; letter-spacing: -0.5px; }}
+  .header .time {{ font-family: 'JetBrains Mono', monospace; color: #718096; font-size: .8rem; }}
+  .gold-bar {{
+    display: flex; justify-content: center; gap: 32px;
+    background: linear-gradient(135deg, #2d2006 0%, #1a1a2e 100%);
+    border: 1px solid #44381f; border-radius: 12px;
+    padding: 16px 24px; margin-bottom: 24px;
   }}
-  .header h1 {{
-    font-size: 1.6rem; color: #fff; margin: 0 0 6px;
-    text-shadow: 0 2px 8px rgba(0,0,0,.15);
-  }}
-  .header .subtitle {{
-    color: rgba(255,255,255,.75); font-size: .85rem;
-  }}
-
-  /* ---- Summary Cards ---- */
-  .summary {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 14px;
-    margin-bottom: 28px;
-  }}
-  .summary-card {{
-    background: rgba(255,255,255,.95);
-    border-radius: 14px;
-    padding: 18px 14px;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,.08);
-    backdrop-filter: blur(10px);
-  }}
-  .summary-card .num {{
-    font-size: 1.8rem; font-weight: 800; line-height: 1;
-  }}
-  .summary-card .label {{
-    font-size: .75rem; color: #718096; margin-top: 6px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: .5px;
-  }}
-  .num.green  {{ color: #38a169; }}
-  .num.orange {{ color: #dd6b20; }}
-  .num.red    {{ color: #e53e3e; }}
-  .num.blue   {{ color: #3182ce; }}
-
-  /* ---- Table Card ---- */
-  .card {{
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.1);
-    margin-bottom: 24px;
-    overflow: hidden;
-  }}
-  .card-header {{
-    padding: 16px 22px;
-    font-weight: 700; font-size: 1rem;
-    display: flex; align-items: center; gap: 10px;
-    border-bottom: 1px solid #edf2f7;
-  }}
-  .card-header .icon {{
-    width: 36px; height: 36px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
-  }}
-  .icon-blue  {{ background: #ebf4ff; }}
-  .icon-orange {{ background: #fefcbf; }}
-
+  .gold-item {{ text-align: center; }}
+  .gold-item .gold-label {{ font-size: .7rem; color: #a08c5b; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }}
+  .gold-item .gold-value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; color: #f6e05e; margin-top: 4px; }}
+  .summary {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }}
+  .summary-card {{ background: #1a1d2e; border: 1px solid #2d3148; border-radius: 14px; padding: 20px 16px; text-align: center; }}
+  .summary-card .label {{ font-size: .68rem; color: #718096; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }}
+  .summary-card .value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 700; }}
+  .summary-card .sub {{ font-family: 'JetBrains Mono', monospace; font-size: .82rem; margin-top: 4px; }}
+  .text-green {{ color: #48bb78; }} .text-red {{ color: #fc8181; }} .text-white {{ color: #f7fafc; }}
+  .card {{ background: #1a1d2e; border: 1px solid #2d3148; border-radius: 16px; overflow: hidden; margin-bottom: 24px; }}
+  .card-header {{ padding: 16px 22px; font-weight: 700; font-size: .95rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2d3148; color: #e2e8f0; }}
   .table-wrap {{ overflow-x: auto; }}
-
-  table {{
-    width: 100%; border-collapse: collapse;
-  }}
-  th {{
-    background: #f7fafc; color: #a0aec0;
-    font-size: .72rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .6px;
-    padding: 12px 18px; text-align: left;
-    border-bottom: 2px solid #edf2f7;
-    white-space: nowrap;
-  }}
-  td {{
-    padding: 14px 18px; font-size: .88rem;
-    border-bottom: 1px solid #f7fafc;
-    white-space: nowrap;
-  }}
+  table {{ width: 100%; border-collapse: collapse; }}
+  th {{ color: #4a5568; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; padding: 12px 18px; text-align: left; border-bottom: 1px solid #2d3148; white-space: nowrap; }}
+  td {{ padding: 14px 18px; font-size: .88rem; border-bottom: 1px solid #1e2234; white-space: nowrap; color: #cbd5e0; }}
   tr:last-child td {{ border-bottom: none; }}
-  tr:hover {{ background: #f7fafc; }}
-
-  .item-name {{ font-weight: 600; color: #2d3748; }}
-  .center {{ text-align: center; }}
-
-  .days-cell {{
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    font-weight: 700; font-size: .85rem; color: #2d3748;
-  }}
-  .warning-text {{ color: #dd6b20; }}
-  .danger-text  {{ color: #e53e3e; }}
-
-  /* ---- Badges ---- */
-  .badge {{
-    display: inline-block;
-    padding: 5px 14px; border-radius: 50px;
-    font-size: .72rem; font-weight: 700;
-    letter-spacing: .3px;
-  }}
-  .safe    {{ background: #f0fff4; color: #38a169; }}
-  .warning {{ background: #fffaf0; color: #dd6b20; }}
-  .danger  {{ background: #fff5f5; color: #e53e3e; }}
-  .expired {{ background: #f7fafc; color: #a0aec0; }}
-
-  /* ---- Receipt ---- */
-  .receipt-link {{
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 12px; border-radius: 6px;
-    background: #ebf4ff; color: #3182ce;
-    font-size: .78rem; font-weight: 600;
-    text-decoration: none; cursor: pointer;
-    transition: background .2s;
-  }}
-  .receipt-link:hover {{ background: #bee3f8; }}
-  .no-receipt {{ color: #cbd5e0; font-size: .78rem; }}
-  .lightbox {{
-    display: none; position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,.75);
-    z-index: 9999;
-    justify-content: center; align-items: center; cursor: pointer;
-  }}
-  .lightbox.active {{ display: flex; }}
-  .lightbox img {{ max-width: 90%; max-height: 85%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }}
-  .lightbox-close {{ position: absolute; top: 20px; right: 28px; color: #fff; font-size: 2rem; cursor: pointer; font-weight: 300; }}
-
-  /* ---- Footer ---- */
-  .footer {{
-    text-align: center; margin-top: 12px;
-    color: rgba(255,255,255,.6); font-size: .75rem;
-  }}
-
-  /* ---- Responsive ---- */
+  tr:hover {{ background: #1e2234; }}
+  .stock-name {{ font-weight: 700; color: #f7fafc; }}
+  .stock-ticker {{ font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: #718096; margin-top: 2px; }}
+  .mono {{ font-family: 'JetBrains Mono', monospace; font-weight: 500; }}
+  .right {{ text-align: right; }}
+  .badge {{ display: inline-block; padding: 4px 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 700; }}
+  .badge-up {{ background: rgba(72, 187, 120, .15); color: #48bb78; }}
+  .badge-down {{ background: rgba(252, 129, 129, .15); color: #fc8181; }}
+  .market-tag {{ display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .65rem; font-weight: 700; letter-spacing: .5px; }}
+  .tag-tw {{ background: #2a4365; color: #90cdf4; }}
+  .tag-us {{ background: #2c3a2e; color: #9ae6b4; }}
+  .tag-hk {{ background: #44337a; color: #d6bcfa; }}
+  .tag-jp {{ background: #4a3728; color: #fbd38d; }}
+  .footer {{ text-align: center; margin-top: 16px; color: #4a5568; font-size: .72rem; }}
   @media (max-width: 600px) {{
     body {{ padding: 16px 10px; }}
+    .summary {{ grid-template-columns: 1fr; }}
+    .gold-bar {{ flex-direction: column; gap: 12px; }}
     th, td {{ padding: 10px 12px; font-size: .82rem; }}
-    .summary {{ grid-template-columns: repeat(2, 1fr); gap: 10px; }}
-    .header h1 {{ font-size: 1.3rem; }}
   }}
 </style>
 </head>
 <body>
 <div class="container">
-
   <div class="header">
-    <h1>🏠 Fiona 家務資產儀表板</h1>
-    <div class="subtitle">自動追蹤保固 &amp; 耗材更換週期</div>
+    <h1>📊 Fiona 資產日報</h1>
+    <div class="time">{current_time}</div>
   </div>
-
+  <div class="gold-bar">
+    <div class="gold-item">
+      <div class="gold-label">🟡 國際金價</div>
+      <div class="gold-value">${gold_usd:,.1f} USD</div>
+    </div>
+    <div class="gold-item">
+      <div class="gold-label">💰 台灣金價</div>
+      <div class="gold-value">{gold_display} TWD/錢</div>
+    </div>
+    <div class="gold-item">
+      <div class="gold-label">💱 USD/TWD</div>
+      <div class="gold-value">{usd_twd_display}</div>
+    </div>
+    <div class="gold-item">
+      <div class="gold-label">💱 JPY/TWD</div>
+      <div class="gold-value">{jpy_twd_display}</div>
+    </div>
+  </div>
   <div class="summary">
     <div class="summary-card">
-      <div class="num blue">{total_items}</div>
-      <div class="label">管理項目</div>
+      <div class="label">總投入</div>
+      <div class="value text-white">${int(total_cost):,}</div>
     </div>
     <div class="summary-card">
-      <div class="num green">{safe_count}</div>
-      <div class="label">狀態正常</div>
+      <div class="label">總現值</div>
+      <div class="value text-white">${int(total_value):,}</div>
     </div>
     <div class="summary-card">
-      <div class="num orange">{warning_count}</div>
-      <div class="label">即將到期</div>
-    </div>
-    <div class="summary-card">
-      <div class="num red">{danger_count}</div>
-      <div class="label">需處理</div>
+      <div class="label">總損益</div>
+      <div class="value {profit_color}">{profit_sign}${int(abs(profit_total)):,}</div>
+      <div class="sub {profit_color}">{profit_sign}{roi_total:.2f}%</div>
     </div>
   </div>
-
   <div class="card">
-    <div class="card-header">
-      <div class="icon icon-blue">📦</div>
-      硬體設備保固
-    </div>
+    <div class="card-header">📈 持股明細</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>名稱</th><th>購買日</th><th>保固(月)</th><th>到期日</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
-        <tbody>{app_rows if app_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
+        <thead><tr><th>股票</th><th>市場</th><th class="right">股數</th><th class="right">成本價</th><th class="right">現價</th><th class="right">現值 (TWD)</th><th class="right">損益</th></tr></thead>
+        <tbody>{html_rows}</tbody>
       </table>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="icon icon-orange">♻️</div>
-      耗材更換追蹤
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>名稱</th><th>更換日</th><th>週期(月)</th><th>下次更換</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
-        <tbody>{cons_rows if cons_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="footer">最後更新：{update_time}</div>
-
+  <div class="footer">資料來源：Yahoo Finance｜最後更新：{current_time}</div>
 </div>
-
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <span class="lightbox-close">&times;</span>
-  <img id="lightbox-img" src="" alt="收據">
-</div>
-
-<script>
-function showReceipt(src) {{
-  document.getElementById('lightbox-img').src = src;
-  document.getElementById('lightbox').classList.add('active');
-}}
-function closeLightbox() {{
-  document.getElementById('lightbox').classList.remove('active');
-}}
-</script>
 </body>
 </html>"""
 
     os.makedirs("docs", exist_ok=True)
-    with open("docs/index.html", "w", encoding="utf-8") as f:
+    with open("docs/portfolio.html", "w", encoding="utf-8") as f:
         f.write(html)
 
-    return soon_list, expired_list, full_list_str, today.strftime('%Y-%m-%d')
+    return message
 
 
 # ==========================================
-# 4. LINE 推播訊息
+# 3. LINE 推播訊息
 # ==========================================
 def push_message(token, text):
-    user_id = os.getenv("LINE_USER_ID")
-    if not user_id or not token:
-        print("❌ 缺少 Token 或 LINE_USER_ID")
-        return
-
     url = "https://api.line.me/v2/bot/message/push"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}"
-    }
-    payload = {
-        "to": user_id,
-        "messages": [{"type": "text", "text": text}]
-    }
-
-    try:
-        res = requests.post(url, headers=headers, json=payload, timeout=15)
-        if res.status_code == 200:
-            print("✅ LINE 訊息發送成功！")
-        else:
-            print(f"❌ 發送失敗 ({res.status_code}): {res.text}")
-    except Exception as e:
-        print(f"❌ 網路連線錯誤: {e}")
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
+    payload = {"to": USER_ID, "messages": [{"type": "text", "text": text}]}
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code == 200:
+        print("LINE 訊息發送成功！")
 
 
 # ==========================================
-# 5. 主程式
+# 4. 主程式
 # ==========================================
-REPORT_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
-
 if __name__ == "__main__":
-    print("🚀 啟動資產檢查任務...")
-    soon_l, expired_l, full_list_str, d_s = process_data()
     token = get_channel_access_token()
-
     if token:
-        # 只在有「已到期」或「即將到期」項目時才發送 LINE 通知
-        if expired_l or soon_l:
-            parts = [f"【Fiona 家務提醒 {d_s}】"]
-
-            if expired_l:
-                parts.append("⛔ 已到期 / 需更換：")
-                parts.append("\n".join(expired_l))
-
-            if soon_l:
-                parts.append("⚠️ 即將到期（90天內）：")
-                parts.append("\n".join(soon_l))
-
-            parts.append(f"📋 完整報告：{REPORT_URL}")
-
-            msg_text = "\n------------------\n".join(parts)
-            push_message(token, msg_text)
-        else:
-            msg_text = f"【Fiona 家務提醒 {d_s}】\n🎉 所有設備及耗材狀態正常！\n------------------\n📋 完整報告：{REPORT_URL}"
-            push_message(token, msg_text)
-    else:
-        print("❌ 任務失敗：無法取得 Token")
+        msg_text = get_stock_summary()
+        push_message(token, msg_text)
