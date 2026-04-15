@@ -156,6 +156,46 @@ def get_stock_summary():
     usd_twd_display = f"{rates['US']:.2f}"
     jpy_twd_display = f"{rates['JP']:.4f}"
 
+    # 報表內容（密碼正確後才解密顯示）
+    report_content = f"""
+  <div class="header">
+    <h1>📊 Fiona 資產日報</h1>
+    <div class="time">{current_time}</div>
+  </div>
+  <div class="gold-bar">
+    <div class="gold-item"><div class="gold-label">🟡 國際金價</div><div class="gold-value">${gold_usd:,.1f} USD</div></div>
+    <div class="gold-item"><div class="gold-label">💰 台灣金價</div><div class="gold-value">{gold_display} TWD/錢</div></div>
+    <div class="gold-item"><div class="gold-label">💱 USD/TWD</div><div class="gold-value">{usd_twd_display}</div></div>
+    <div class="gold-item"><div class="gold-label">💱 JPY/TWD</div><div class="gold-value">{jpy_twd_display}</div></div>
+  </div>
+  <div class="summary">
+    <div class="summary-card"><div class="label">總投入</div><div class="value text-white">${int(total_cost):,}</div></div>
+    <div class="summary-card"><div class="label">總現值</div><div class="value text-white">${int(total_value):,}</div></div>
+    <div class="summary-card"><div class="label">總損益</div><div class="value {profit_color}">{profit_sign}${int(abs(profit_total)):,}</div><div class="sub {profit_color}">{profit_sign}{roi_total:.2f}%</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">📈 持股明細</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>股票</th><th>市場</th><th class="right">股數</th><th class="right">成本價</th><th class="right">現價</th><th class="right">現值 (TWD)</th><th class="right">損益 (TWD)</th><th class="right">報酬率</th></tr></thead>
+      <tbody>{html_rows}</tbody>
+    </table></div>
+  </div>
+  <div class="footer">資料來源：Yahoo Finance｜最後更新：{current_time}</div>"""
+
+    # ---- AES 加密報表內容 ----
+    import hashlib, base64
+    from os import urandom
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    password = "vic2026"
+    salt = urandom(16)
+    iv = urandom(12)
+    key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000, dklen=32)
+    aesgcm = AESGCM(key)
+    ciphertext = aesgcm.encrypt(iv, report_content.encode('utf-8'), None)
+    encrypted_b64 = base64.b64encode(ciphertext).decode()
+    salt_b64 = base64.b64encode(salt).decode()
+    iv_b64 = base64.b64encode(iv).decode()
+
     html = f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -165,21 +205,12 @@ def get_stock_summary():
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@500;700&display=swap');
   *, *::before, *::after {{ box-sizing: border-box; }}
-  body {{
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #0f1117; margin: 0; padding: 24px 16px;
-    min-height: 100vh; color: #e2e8f0;
-  }}
+  body {{ font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; background: #0f1117; margin: 0; padding: 24px 16px; min-height: 100vh; color: #e2e8f0; }}
   .container {{ max-width: 960px; margin: auto; }}
   .header {{ text-align: center; margin-bottom: 32px; }}
   .header h1 {{ font-size: 1.5rem; font-weight: 700; color: #f7fafc; margin: 0 0 4px; letter-spacing: -0.5px; }}
   .header .time {{ font-family: 'JetBrains Mono', monospace; color: #718096; font-size: .8rem; }}
-  .gold-bar {{
-    display: flex; justify-content: center; gap: 32px;
-    background: linear-gradient(135deg, #2d2006 0%, #1a1a2e 100%);
-    border: 1px solid #44381f; border-radius: 12px;
-    padding: 16px 24px; margin-bottom: 24px;
-  }}
+  .gold-bar {{ display: flex; justify-content: center; gap: 32px; background: linear-gradient(135deg, #2d2006 0%, #1a1a2e 100%); border: 1px solid #44381f; border-radius: 12px; padding: 16px 24px; margin-bottom: 24px; }}
   .gold-item {{ text-align: center; }}
   .gold-item .gold-label {{ font-size: .7rem; color: #a08c5b; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }}
   .gold-item .gold-value {{ font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; color: #f6e05e; margin-top: 4px; }}
@@ -195,8 +226,7 @@ def get_stock_summary():
   table {{ width: 100%; border-collapse: collapse; }}
   th {{ color: #4a5568; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; padding: 12px 18px; text-align: left; border-bottom: 1px solid #2d3148; white-space: nowrap; }}
   td {{ padding: 14px 18px; font-size: .88rem; border-bottom: 1px solid #1e2234; white-space: nowrap; color: #cbd5e0; }}
-  tr:last-child td {{ border-bottom: none; }}
-  tr:hover {{ background: #1e2234; }}
+  tr:last-child td {{ border-bottom: none; }} tr:hover {{ background: #1e2234; }}
   .stock-name {{ font-weight: 700; color: #f7fafc; }}
   .stock-ticker {{ font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: #718096; margin-top: 2px; }}
   .mono {{ font-family: 'JetBrains Mono', monospace; font-weight: 500; }}
@@ -205,51 +235,24 @@ def get_stock_summary():
   .badge-up {{ background: rgba(72, 187, 120, .15); color: #48bb78; }}
   .badge-down {{ background: rgba(252, 129, 129, .15); color: #fc8181; }}
   .market-tag {{ display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .65rem; font-weight: 700; letter-spacing: .5px; }}
-  .tag-tw {{ background: #2a4365; color: #90cdf4; }}
-  .tag-us {{ background: #2c3a2e; color: #9ae6b4; }}
-  .tag-hk {{ background: #44337a; color: #d6bcfa; }}
-  .tag-jp {{ background: #4a3728; color: #fbd38d; }}
+  .tag-tw {{ background: #2a4365; color: #90cdf4; }} .tag-us {{ background: #2c3a2e; color: #9ae6b4; }}
+  .tag-hk {{ background: #44337a; color: #d6bcfa; }} .tag-jp {{ background: #4a3728; color: #fbd38d; }}
   .footer {{ text-align: center; margin-top: 16px; color: #4a5568; font-size: .72rem; }}
-  @media (max-width: 600px) {{
-    body {{ padding: 16px 10px; }}
-    .summary {{ grid-template-columns: 1fr; }}
-    .gold-bar {{ flex-direction: column; gap: 12px; }}
-    th, td {{ padding: 10px 12px; font-size: .82rem; }}
-  }}
-  /* ---- Password Protection ---- */
-  .login-overlay {{
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: #0f1117;
-    z-index: 99999;
-    display: flex; justify-content: center; align-items: center;
-  }}
+  .login-overlay {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f1117; z-index: 99999; display: flex; justify-content: center; align-items: center; }}
   .login-overlay.hidden {{ display: none; }}
-  .login-box {{
-    background: #1a1d2e; border: 1px solid #2d3148; border-radius: 20px;
-    padding: 40px 36px; text-align: center; width: 340px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.4);
-  }}
+  .login-box {{ background: #1a1d2e; border: 1px solid #2d3148; border-radius: 20px; padding: 40px 36px; text-align: center; width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }}
   .login-box h2 {{ margin: 0 0 8px; font-size: 1.3rem; color: #f7fafc; }}
   .login-box p {{ margin: 0 0 24px; font-size: .85rem; color: #718096; }}
-  .login-box input {{
-    width: 100%; padding: 12px 16px; border: 2px solid #2d3148;
-    border-radius: 10px; font-size: 1rem; outline: none;
-    background: #0f1117; color: #e2e8f0;
-    transition: border-color .2s;
-  }}
+  .login-box input {{ width: 100%; padding: 12px 16px; border: 2px solid #2d3148; border-radius: 10px; font-size: 1rem; outline: none; background: #0f1117; color: #e2e8f0; transition: border-color .2s; }}
   .login-box input:focus {{ border-color: #667eea; }}
-  .login-box button {{
-    width: 100%; margin-top: 14px; padding: 12px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: #fff; border: none; border-radius: 10px;
-    font-size: 1rem; font-weight: 700; cursor: pointer;
-    transition: opacity .2s;
-  }}
+  .login-box button {{ width: 100%; margin-top: 14px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity .2s; }}
   .login-box button:hover {{ opacity: .9; }}
   .login-error {{ color: #fc8181; font-size: .82rem; margin-top: 10px; display: none; }}
+  @media (max-width: 600px) {{ body {{ padding: 16px 10px; }} .summary {{ grid-template-columns: 1fr; }} .gold-bar {{ flex-direction: column; gap: 12px; }} th, td {{ padding: 10px 12px; font-size: .82rem; }} }}
 </style>
 </head>
 <body>
+<noscript><p style="color:#e2e8f0;text-align:center;margin-top:40vh">此報表需要啟用 JavaScript 才能檢視。</p></noscript>
 
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
@@ -261,71 +264,23 @@ def get_stock_summary():
   </div>
 </div>
 
-<div class="container" id="mainContent" style="display:none">
-  <div class="header">
-    <h1>📊 Fiona 資產日報</h1>
-    <div class="time">{current_time}</div>
-  </div>
-  <div class="gold-bar">
-    <div class="gold-item">
-      <div class="gold-label">🟡 國際金價</div>
-      <div class="gold-value">${gold_usd:,.1f} USD</div>
-    </div>
-    <div class="gold-item">
-      <div class="gold-label">💰 台灣金價</div>
-      <div class="gold-value">{gold_display} TWD/錢</div>
-    </div>
-    <div class="gold-item">
-      <div class="gold-label">💱 USD/TWD</div>
-      <div class="gold-value">{usd_twd_display}</div>
-    </div>
-    <div class="gold-item">
-      <div class="gold-label">💱 JPY/TWD</div>
-      <div class="gold-value">{jpy_twd_display}</div>
-    </div>
-  </div>
-  <div class="summary">
-    <div class="summary-card">
-      <div class="label">總投入</div>
-      <div class="value text-white">${int(total_cost):,}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">總現值</div>
-      <div class="value text-white">${int(total_value):,}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">總損益</div>
-      <div class="value {profit_color}">{profit_sign}${int(abs(profit_total)):,}</div>
-      <div class="sub {profit_color}">{profit_sign}{roi_total:.2f}%</div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-header">📈 持股明細</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>股票</th><th>市場</th><th class="right">股數</th><th class="right">成本價</th><th class="right">現價</th><th class="right">現值 (TWD)</th><th class="right">損益 (TWD)</th><th class="right">報酬率</th></tr></thead>
-        <tbody>{html_rows}</tbody>
-      </table>
-    </div>
-  </div>
-  <div class="footer">資料來源：Yahoo Finance｜最後更新：{current_time}</div>
-</div>
+<div class="container" id="mainContent"></div>
 
 <script>
-const HASH = 'd46f8caeb0a0bab98cb603cc792cd40d658b42934d9b289553f5fdb93ae35e52acc524fb8efb5cf215bbdc966e14963c408a7c89fa7d140f8e71a290a50d49dc';
-async function sha512(str) {{
-  const buf = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}}
-async function checkPwd() {{
-  const input = document.getElementById('pwdInput').value;
-  const hash = await sha512(input);
-  if (hash === HASH) {{
+const E="{encrypted_b64}",S="{salt_b64}",I="{iv_b64}";
+function b64(s){{return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}}
+async function checkPwd(){{
+  try{{
+    const pw=document.getElementById('pwdInput').value;
+    const salt=b64(S),iv=b64(I),ct=b64(E);
+    const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),{{name:'PBKDF2'}},false,['deriveKey']);
+    const key=await crypto.subtle.deriveKey({{name:'PBKDF2',salt:salt,iterations:100000,hash:'SHA-256'}},km,{{name:'AES-GCM',length:256}},false,['decrypt']);
+    const dec=await crypto.subtle.decrypt({{name:'AES-GCM',iv:iv}},key,ct);
+    document.getElementById('mainContent').innerHTML=new TextDecoder().decode(dec);
     document.getElementById('loginOverlay').classList.add('hidden');
-    document.getElementById('mainContent').style.display = '';
-  }} else {{
-    document.getElementById('pwdError').style.display = 'block';
-    document.getElementById('pwdInput').value = '';
+  }}catch(e){{
+    document.getElementById('pwdError').style.display='block';
+    document.getElementById('pwdInput').value='';
     document.getElementById('pwdInput').focus();
   }}
 }}
