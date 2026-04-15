@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 USER_ID = os.getenv("LINE_USER_ID")
-REPORT_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
+REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
 
 PORTFOLIO_FILE = "portfolio.json"
 
@@ -216,10 +216,52 @@ def get_stock_summary():
     .gold-bar {{ flex-direction: column; gap: 12px; }}
     th, td {{ padding: 10px 12px; font-size: .82rem; }}
   }}
+  /* ---- Password Protection ---- */
+  .login-overlay {{
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #0f1117;
+    z-index: 99999;
+    display: flex; justify-content: center; align-items: center;
+  }}
+  .login-overlay.hidden {{ display: none; }}
+  .login-box {{
+    background: #1a1d2e; border: 1px solid #2d3148; border-radius: 20px;
+    padding: 40px 36px; text-align: center; width: 340px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }}
+  .login-box h2 {{ margin: 0 0 8px; font-size: 1.3rem; color: #f7fafc; }}
+  .login-box p {{ margin: 0 0 24px; font-size: .85rem; color: #718096; }}
+  .login-box input {{
+    width: 100%; padding: 12px 16px; border: 2px solid #2d3148;
+    border-radius: 10px; font-size: 1rem; outline: none;
+    background: #0f1117; color: #e2e8f0;
+    transition: border-color .2s;
+  }}
+  .login-box input:focus {{ border-color: #667eea; }}
+  .login-box button {{
+    width: 100%; margin-top: 14px; padding: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    transition: opacity .2s;
+  }}
+  .login-box button:hover {{ opacity: .9; }}
+  .login-error {{ color: #fc8181; font-size: .82rem; margin-top: 10px; display: none; }}
 </style>
 </head>
 <body>
-<div class="container">
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>🔒 需要驗證</h2>
+    <p>請輸入密碼以查看報表</p>
+    <input type="password" id="pwdInput" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')checkPwd()">
+    <button onclick="checkPwd()">解鎖</button>
+    <div class="login-error" id="pwdError">密碼錯誤，請重試</div>
+  </div>
+</div>
+
+<div class="container" id="mainContent" style="display:none">
   <div class="header">
     <h1>📊 Fiona 資產日報</h1>
     <div class="time">{current_time}</div>
@@ -268,6 +310,26 @@ def get_stock_summary():
   </div>
   <div class="footer">資料來源：Yahoo Finance｜最後更新：{current_time}</div>
 </div>
+
+<script>
+const HASH = 'c63e567042cb11f843742fb4be6a336c82984ddcd2c9591e3e363a87740b2a39';
+async function sha256(str) {{
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}}
+async function checkPwd() {{
+  const input = document.getElementById('pwdInput').value;
+  const hash = await sha256(input);
+  if (hash === HASH) {{
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('mainContent').style.display = '';
+  }} else {{
+    document.getElementById('pwdError').style.display = 'block';
+    document.getElementById('pwdInput').value = '';
+    document.getElementById('pwdInput').focus();
+  }}
+}}
+</script>
 </body>
 </html>"""
 
@@ -294,6 +356,9 @@ def push_message(token, text):
 # 4. 主程式
 # ==========================================
 if __name__ == "__main__":
+    # 加時間戳破快取
+    cache_bust = datetime.now(timezone(timedelta(hours=8))).strftime('%Y%m%d%H%M')
+    REPORT_URL = f"{REPORT_BASE_URL}?t={cache_bust}"
     token = get_channel_access_token()
     if token:
         msg_text = get_stock_summary()
