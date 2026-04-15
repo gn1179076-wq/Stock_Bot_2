@@ -312,14 +312,14 @@ def get_stock_summary():
 </div>
 
 <script>
-const HASH = 'c63e567042cb11f843742fb4be6a336c82984ddcd2c9591e3e363a87740b2a39';
-async function sha256(str) {{
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+const HASH = '4c6f4f2eb1b43c025e7efe4ae31a0a9e920c428aa014ba5babcf4eb42c60c552b802241fb4a1cecd319e97326084c274';
+async function sha384(str) {{
+  const buf = await crypto.subtle.digest('SHA-384', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }}
 async function checkPwd() {{
   const input = document.getElementById('pwdInput').value;
-  const hash = await sha256(input);
+  const hash = await sha384(input);
   if (hash === HASH) {{
     document.getElementById('loginOverlay').classList.add('hidden');
     document.getElementById('mainContent').style.display = '';
