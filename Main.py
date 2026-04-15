@@ -101,6 +101,9 @@ def get_stock_summary():
             market_tag_class = {"TW": "tag-tw", "US": "tag-us", "HK": "tag-hk", "JP": "tag-jp"}.get(item['market'], "tag-tw")
             badge_class = "badge-up" if roi >= 0 else "badge-down"
             sign = "+" if roi >= 0 else ""
+            profit_amt = int(v_twd - c_twd)
+            profit_color = "text-green" if profit_amt >= 0 else "text-red"
+            profit_display = f"+${profit_amt:,}" if profit_amt >= 0 else f"-${abs(profit_amt):,}"
 
             html_rows += (
                 f"<tr>"
@@ -110,7 +113,7 @@ def get_stock_summary():
                 f"<td class='right mono'>{symbol}{cost_p:,.2f}</td>"
                 f"<td class='right mono'>{symbol}{current:,.2f}</td>"
                 f"<td class='right mono'>${int(v_twd):,}</td>"
-                f"<td class='right mono {\"text-green\" if roi >= 0 else \"text-red\"}'>{\"+'\" if roi >= 0 else ''}{int(v_twd - c_twd):,}</td>"
+                f"<td class='right mono {profit_color}'>{profit_display}</td>"
                 f"<td class='right'><span class='badge {badge_class}'>{sign}{roi:.1f}%</span></td>"
                 f"</tr>"
             )
