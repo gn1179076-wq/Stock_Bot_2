@@ -392,14 +392,14 @@ def process_data():
 </div>
 
 <script>
-const HASH = '4c6f4f2eb1b43c025e7efe4ae31a0a9e920c428aa014ba5babcf4eb42c60c552b802241fb4a1cecd319e97326084c274';
-async function sha384(str) {{
-  const buf = await crypto.subtle.digest('SHA-384', new TextEncoder().encode(str));
+const HASH = 'd46f8caeb0a0bab98cb603cc792cd40d658b42934d9b289553f5fdb93ae35e52acc524fb8efb5cf215bbdc966e14963c408a7c89fa7d140f8e71a290a50d49dc';
+async function sha512(str) {{
+  const buf = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }}
 async function checkPwd() {{
   const input = document.getElementById('pwdInput').value;
-  const hash = await sha384(input);
+  const hash = await sha512(input);
   if (hash === HASH) {{
     document.getElementById('loginOverlay').classList.add('hidden');
     document.getElementById('mainContent').style.display = '';
