@@ -133,6 +133,8 @@ def get_stock_summary():
         f"------------------\n"
         f"🟡 國際金價: ${gold_usd:.1f} (USD)\n"
         f"💰 台灣金價: {gold_display} (TWD/錢)\n"
+        f"💱 美元匯率: {rates['US']:.2f} (USD/TWD)\n"
+        f"💱 日幣匯率: {rates['JP']:.4f} (JPY/TWD)\n"
         f"------------------\n"
         f"💰 總投入: ${int(total_cost):,}\n"
         f"📊 總現值: ${int(total_value):,}\n"
@@ -147,6 +149,7 @@ def get_stock_summary():
     profit_color = "text-green" if profit_total >= 0 else "text-red"
     profit_sign = "+" if profit_total >= 0 else ""
     usd_twd_display = f"{rates['US']:.2f}"
+    jpy_twd_display = f"{rates['JP']:.4f}"
 
     html = f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -226,8 +229,12 @@ def get_stock_summary():
       <div class="gold-value">{gold_display} TWD/錢</div>
     </div>
     <div class="gold-item">
-      <div class="gold-label">匯率 USD/TWD</div>
+      <div class="gold-label">💱 USD/TWD</div>
       <div class="gold-value">{usd_twd_display}</div>
+    </div>
+    <div class="gold-item">
+      <div class="gold-label">💱 JPY/TWD</div>
+      <div class="gold-value">{jpy_twd_display}</div>
     </div>
   </div>
   <div class="summary">
