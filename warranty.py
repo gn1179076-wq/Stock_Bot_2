@@ -93,6 +93,13 @@ def process_data():
                 days_display = f'<span class="days-cell">{rem} 天</span>'
                 safe_count += 1
 
+            # 收據連結
+            receipt = item.get('receipt', '')
+            if receipt:
+                receipt_cell = f"<td><a class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</a></td>"
+            else:
+                receipt_cell = "<td><span class='no-receipt'>—</span></td>"
+
             row = (
                 f"<tr>"
                 f"<td><div class='item-name'>{n}</div></td>"
@@ -101,6 +108,7 @@ def process_data():
                 f"<td>{e_d.strftime('%Y-%m-%d')}</td>"
                 f"<td>{days_display}</td>"
                 f"<td><span class='badge {badge_class}'>{badge_text}</span></td>"
+                f"{receipt_cell}"
                 f"</tr>"
             )
 
@@ -238,6 +246,28 @@ def process_data():
   .danger  {{ background: #fff5f5; color: #e53e3e; }}
   .expired {{ background: #f7fafc; color: #a0aec0; }}
 
+  /* ---- Receipt ---- */
+  .receipt-link {{
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 6px;
+    background: #ebf4ff; color: #3182ce;
+    font-size: .78rem; font-weight: 600;
+    text-decoration: none; cursor: pointer;
+    transition: background .2s;
+  }}
+  .receipt-link:hover {{ background: #bee3f8; }}
+  .no-receipt {{ color: #cbd5e0; font-size: .78rem; }}
+  .lightbox {{
+    display: none; position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,.75);
+    z-index: 9999;
+    justify-content: center; align-items: center; cursor: pointer;
+  }}
+  .lightbox.active {{ display: flex; }}
+  .lightbox img {{ max-width: 90%; max-height: 85%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }}
+  .lightbox-close {{ position: absolute; top: 20px; right: 28px; color: #fff; font-size: 2rem; cursor: pointer; font-weight: 300; }}
+
   /* ---- Footer ---- */
   .footer {{
     text-align: center; margin-top: 12px;
@@ -287,8 +317,8 @@ def process_data():
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>名稱</th><th>購買日</th><th>保固(月)</th><th>到期日</th><th>剩餘</th><th>狀態</th></tr></thead>
-        <tbody>{app_rows if app_rows else '<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
+        <thead><tr><th>名稱</th><th>購買日</th><th>保固(月)</th><th>到期日</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
+        <tbody>{app_rows if app_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
       </table>
     </div>
   </div>
@@ -300,8 +330,8 @@ def process_data():
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>名稱</th><th>更換日</th><th>週期(月)</th><th>下次更換</th><th>剩餘</th><th>狀態</th></tr></thead>
-        <tbody>{cons_rows if cons_rows else '<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
+        <thead><tr><th>名稱</th><th>更換日</th><th>週期(月)</th><th>下次更換</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
+        <tbody>{cons_rows if cons_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
       </table>
     </div>
   </div>
@@ -309,6 +339,21 @@ def process_data():
   <div class="footer">最後更新：{update_time}</div>
 
 </div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close">&times;</span>
+  <img id="lightbox-img" src="" alt="收據">
+</div>
+
+<script>
+function showReceipt(src) {{
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}}
+function closeLightbox() {{
+  document.getElementById('lightbox').classList.remove('active');
+}}
+</script>
 </body>
 </html>"""
 
