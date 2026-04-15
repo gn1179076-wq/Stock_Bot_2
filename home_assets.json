@@ -2,13 +2,14 @@
     {"name": "客廳冷氣排水機", "purchase_date": "2026-04-13", "warranty_months": 36},
     {"name": "iPhone 17", "purchase_date": "2026-04-02", "warranty_months": 12},
     {"name": "iPhone 17 Pro Max", "purchase_date": "2026-04-02", "warranty_months": 12},
+    {"name": "Samsung Z Fold7", "purchase_date": "2025-08-28", "warranty_months": 36},
+    {"name": "Samsung 三星 S27FG812SC Odyssey", "purchase_date": "2026-02-07", "warranty_months": 24, "receipt": "receipts/receipt_samsung_s27fg812sc_2026-02-07.png"},
+    {"name": "桌上型電腦", "purchase_date": "2026-02-01", "warranty_months": 12, "receipt": "receipts/Destop.jpg"},
+    {"name": "GIGABYTE GeForce RTX 5070 WINDFORCE OC SFF 12G", "purchase_date": "2026-01-20", "warranty_months": 36, "receipt": "receipts/GFX.jpg"},
+
     {"name": "[耗材] 小米空氣清淨機X2 濾網", "purchase_date": "2026-03-01", "warranty_months": 6},
     {"name": "[耗材] SHARP空氣清淨機濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] blueair 濾網", "purchase_date": "2026-03-01", "warranty_months": 12},
     {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
-    {"name": "桌上型電腦", "purchase_date": "2026-02-01", "warranty_months": 12, "receipt": "receipts/Destop.jpg"},
-    {"name": "GIGABYTE GeForce RTX 5070 WINDFORCE OC SFF 12G", "purchase_date": "2026-01-20", "warranty_months": 36, "receipt": "receipts/GFX.jpg"},
-    {"name": "Samsung Z Fold7", "purchase_date": "2025-08-28", "warranty_months": 36},
-    {"name": "[耗材] 三樓瓦斯", "purchase_date": "2026-04-14", "warranty_months": 3},
-    {"name": "Samsung 三星 S27FG812SC Odyssey", "purchase_date": "2026-02-07", "warranty_months": 24, "receipt": "receipts/receipt_samsung_s27fg812sc_2026-02-07.png"}
+    {"name": "[耗材] 三樓瓦斯", "purchase_date": "2026-04-14", "warranty_months": 3}
 ]
