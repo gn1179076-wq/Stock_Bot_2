@@ -152,15 +152,7 @@ def process_data():
       <tbody>{cons_rows if cons_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
     </table></div>
   </div>
-  <div class="footer">最後更新：{update_time}</div>
-  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
-    <span class="lightbox-close">&times;</span>
-    <img id="lightbox-img" src="" alt="收據">
-  </div>
-  <script>
-  function showReceipt(s){{document.getElementById('lightbox-img').src=s;document.getElementById('lightbox').classList.add('active')}}
-  function closeLightbox(){{document.getElementById('lightbox').classList.remove('active')}}
-  </script>"""
+  <div class="footer">最後更新：{update_time}</div>"""
 
     # ---- AES 加密報表內容 ----
     import hashlib, base64
@@ -254,7 +246,15 @@ def process_data():
 
 <div class="container" id="mainContent"></div>
 
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close">&times;</span>
+  <img id="lightbox-img" src="" alt="收據">
+</div>
+
 <script>
+function showReceipt(s){{document.getElementById('lightbox-img').src=s;document.getElementById('lightbox').classList.add('active')}}
+function closeLightbox(){{document.getElementById('lightbox').classList.remove('active')}}
+
 const E="{encrypted_b64}",S="{salt_b64}",I="{iv_b64}";
 function b64(s){{return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}}
 async function checkPwd(){{
