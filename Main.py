@@ -92,7 +92,8 @@ def get_stock_summary():
             symbol = {"US": "$", "HK": "HK$", "JP": "¥", "TW": "$"}.get(item['market'], "$")
             cost_p = item['cost_price']
             if roi < 0:
-                details += f"📉 {item['name']}\n   {symbol}{cost_p:,.2f} → {symbol}{current:,.2f} ({roi:+.1f}%)\n"
+                loss_amt = int(v_twd - c_twd)
+                details += f"📉 {item['name']}\n   {symbol}{cost_p:,.2f} → {symbol}{current:,.2f} ({roi:+.1f}% / ${loss_amt:,})\n"
 
             # HTML 表格行
             display_name = item['name'].split(' ', 1)[-1] if ' ' in item['name'] else item['name']
@@ -109,6 +110,7 @@ def get_stock_summary():
                 f"<td class='right mono'>{symbol}{cost_p:,.2f}</td>"
                 f"<td class='right mono'>{symbol}{current:,.2f}</td>"
                 f"<td class='right mono'>${int(v_twd):,}</td>"
+                f"<td class='right mono {\"text-green\" if roi >= 0 else \"text-red\"}'>{\"+'\" if roi >= 0 else ''}{int(v_twd - c_twd):,}</td>"
                 f"<td class='right'><span class='badge {badge_class}'>{sign}{roi:.1f}%</span></td>"
                 f"</tr>"
             )
@@ -256,7 +258,7 @@ def get_stock_summary():
     <div class="card-header">📈 持股明細</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>股票</th><th>市場</th><th class="right">股數</th><th class="right">成本價</th><th class="right">現價</th><th class="right">現值 (TWD)</th><th class="right">損益</th></tr></thead>
+        <thead><tr><th>股票</th><th>市場</th><th class="right">股數</th><th class="right">成本價</th><th class="right">現價</th><th class="right">現值 (TWD)</th><th class="right">損益 (TWD)</th><th class="right">報酬率</th></tr></thead>
         <tbody>{html_rows}</tbody>
       </table>
     </div>
