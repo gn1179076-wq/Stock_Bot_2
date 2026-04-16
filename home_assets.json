@@ -88,7 +88,8 @@
     {
         "name": "[訂閱] Whoscall",
         "purchase_date": "2025-11-22",
-        "warranty_months": 12
+        "warranty_months": 12,
+        "fee": "599"
     },
     {
         "name": "[耗材] Google Tag x 3",
