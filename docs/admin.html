@@ -79,19 +79,18 @@
   <div class="modal" id="editModal">
     <div class="modal-box">
       <h3 id="modalTitle">新增項目</h3>
-      <div class="form-group" id="receiptGroup">
+      <div class="form-group"><label>名稱</label><input type="text" id="fName" placeholder="例：iPhone 17 / [耗材] 濾網 / [訂閱] Claude"></div>
+      <div class="form-row">
+        <div class="form-group"><label>購買日期</label><input type="date" id="fDate"></div>
+        <div class="form-group"><label>保固月數</label><input type="number" id="fMonths" min="1" placeholder="12"></div>
+      </div>
+      <div class="form-group">
         <label>收據圖片（選填）</label>
         <div class="upload-area" onclick="document.getElementById('fFile').click()">
           <div>點擊上傳圖片</div>
           <div id="uploadPreview" style="margin-top:8px;font-size:.82rem;color:#667eea"></div>
           <input type="file" id="fFile" accept="image/*,.pdf" onchange="previewFile()">
         </div>
-        <input type="text" id="fReceipt" placeholder="receipts/xxx.jpg" style="margin-top:6px;width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem">
-      </div>
-      <div class="form-group" id="costGroup" style="display:none">
-        <label>費用（每月/每年）</label>
-        <input type="number" id="fCost" min="0" placeholder="例：299" style="width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem">
-      </div>
         <input type="text" id="fReceipt" placeholder="receipts/xxx.jpg" style="margin-top:6px;width:100%;padding:8px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem;outline:none">
       </div>
       <div class="modal-actions">
