@@ -58,7 +58,7 @@ def process_data():
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     home_assets = load_assets()
-    app_rows, cons_rows, soon_list, expired_list, full_list_str = "", "", [], [], ""
+    app_rows, cons_rows, sub_rows, soon_list, expired_list, full_list_str = "", "", "", [], [], ""
 
     # 統計數據
     total_items = len(home_assets)
@@ -70,14 +70,19 @@ def process_data():
             e_d = p_d + timedelta(days=item['warranty_months'] * 30.44)
             rem = (e_d - today).days
             is_c = "[耗材]" in item['name']
-            n = item['name'].replace("[耗材] ", "")
+            is_s = "[訂閱]" in item['name']
+            n = item['name'].replace("[耗材] ", "").replace("[訂閱] ", "")
 
             if rem < 0:
-                badge_class = "danger" if is_c else "expired"
-                badge_text = "需更換" if is_c else "已過期"
+                if is_s:
+                    badge_class, badge_text = "danger", "需續訂"
+                elif is_c:
+                    badge_class, badge_text = "danger", "需更換"
+                else:
+                    badge_class, badge_text = "expired", "已過期"
                 icon = "🔴"
                 days_display = '<span class="days-cell danger-text">已逾期</span>'
-                expired_list.append(f"🔴 {item['name']} ({'需更換' if is_c else '已過期'})")
+                expired_list.append(f"🔴 {item['name']} ({badge_text})")
                 danger_count += 1
             elif rem <= 20:
                 badge_class = "warning"
@@ -115,7 +120,9 @@ def process_data():
                 f"</tr>"
             )
 
-            if is_c:
+            if is_s:
+                sub_rows += row
+            elif is_c:
                 cons_rows += row
             else:
                 app_rows += row
@@ -150,6 +157,13 @@ def process_data():
     <div class="table-wrap"><table>
       <thead><tr><th>名稱</th><th>更換日</th><th>週期(月)</th><th>下次更換</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
       <tbody>{cons_rows if cons_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="icon icon-purple">🔔</div>訂閱服務</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>名稱</th><th>訂閱日</th><th>週期(月)</th><th>下次續訂</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
+      <tbody>{sub_rows if sub_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
     </table></div>
   </div>
   <div class="footer">最後更新：{update_time}</div>"""
@@ -198,7 +212,7 @@ def process_data():
   .card {{ background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.1); margin-bottom: 24px; overflow: hidden; }}
   .card-header {{ padding: 16px 22px; font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #edf2f7; }}
   .card-header .icon {{ width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }}
-  .icon-blue {{ background: #ebf4ff; }} .icon-orange {{ background: #fefcbf; }}
+  .icon-blue {{ background: #ebf4ff; }} .icon-orange {{ background: #fefcbf; }} .icon-purple {{ background: #faf5ff; }}
   .table-wrap {{ overflow-x: auto; }}
   table {{ width: 100%; border-collapse: collapse; }}
   th {{ background: #f7fafc; color: #a0aec0; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; padding: 12px 18px; text-align: left; border-bottom: 2px solid #edf2f7; white-space: nowrap; }}
