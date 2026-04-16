@@ -58,7 +58,13 @@ def process_data():
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     home_assets = load_assets()
-    app_rows, cons_rows, sub_rows, soon_list, expired_list, full_list_str = "", "", "", [], [], ""
+    
+    # 排序：按到期日排序
+    home_assets = sorted(home_assets, key=lambda x: datetime.strptime(x['purchase_date'], "%Y-%m-%d") + timedelta(days=x['warranty_months'] * 30.44))
+    
+    app_rows, cons_rows, sub_rows = "", "", ""
+    soon_list, expired_list = [], []
+    full_list_str = ""
 
     # 統計數據
     total_items = len(home_assets)
@@ -69,46 +75,46 @@ def process_data():
             p_d = datetime.strptime(item['purchase_date'], "%Y-%m-%d").replace(tzinfo=tz)
             e_d = p_d + timedelta(days=item['warranty_months'] * 30.44)
             rem = (e_d - today).days
+            
             is_c = "[耗材]" in item['name']
             is_s = "[訂閱]" in item['name']
             n = item['name'].replace("[耗材] ", "").replace("[訂閱] ", "")
 
+            # 狀態判斷
             if rem < 0:
-                if is_s:
-                    badge_class, badge_text = "danger", "需續訂"
-                elif is_c:
-                    badge_class, badge_text = "danger", "需更換"
-                else:
-                    badge_class, badge_text = "expired", "已過期"
-                icon = "🔴"
+                badge_text = "需續訂" if is_s else ("需更換" if is_c else "已過期")
+                badge_class, icon = ("danger", "🔴") if (is_s or is_c) else ("expired", "🔴")
                 days_display = '<span class="days-cell danger-text">已逾期</span>'
                 expired_list.append(f"🔴 {item['name']} ({badge_text})")
                 danger_count += 1
             elif rem <= 20:
-                badge_class = "warning"
-                badge_text = "即將到期"
-                icon = "⚠️"
+                badge_class, badge_text, icon = "warning", "即將到期", "⚠️"
                 days_display = f'<span class="days-cell warning-text">{rem} 天</span>'
                 soon_list.append(f"🔸 {item['name']} (剩 {rem} 天)")
                 warning_count += 1
             else:
-                badge_class = "safe"
-                badge_text = "正常"
-                icon = "✅"
+                badge_class, badge_text, icon = "safe", "正常", "✅"
                 days_display = f'<span class="days-cell">{rem} 天</span>'
                 safe_count += 1
 
-            # 收據連結（圖片彈出大圖，PDF 開新分頁）
-            receipt = item.get('receipt', '')
-            if receipt:
-                if receipt.lower().endswith('.pdf'):
-                    receipt_cell = f"<td><a class='receipt-link' href='{receipt}' target='_blank'>📄 PDF</a></td>"
-                else:
-                    receipt_cell = f"<td><a class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</a></td>"
+            # --- 核心邏輯：區分訂閱(費用)與一般項目(收據) ---
+            if is_s:
+                # 訂閱服務：顯示費用欄位
+                fee = item.get('fee', '—')
+                extra_cell = f"<td class='center'><span style='color:#667eea;font-weight:600'>{fee}</span></td>"
             else:
-                receipt_cell = "<td><span class='no-receipt'>—</span></td>"
+                # 硬體或耗材：顯示收據連結
+                receipt = item.get('receipt', '')
+                if receipt:
+                    if receipt.lower().endswith('.pdf'):
+                        extra_cell = f"<td><a class='receipt-link' href='{receipt}' target='_blank'>📄 PDF</a></td>"
+                    else:
+                        extra_cell = f"<td><a class='receipt-link' onclick=\"showReceipt('{receipt}')\">📎 查看</a></td>"
+                else:
+                    extra_cell = "<td><span class='no-receipt'>—</span></td>"
 
-            row = (
+            # 組合表格行
+            row_html = (
                 f"<tr>"
                 f"<td><div class='item-name'>{n}</div></td>"
                 f"<td>{item['purchase_date']}</td>"
@@ -116,24 +122,26 @@ def process_data():
                 f"<td>{e_d.strftime('%Y-%m-%d')}</td>"
                 f"<td>{days_display}</td>"
                 f"<td><span class='badge {badge_class}'>{badge_text}</span></td>"
-                f"{receipt_cell}"
+                f"{extra_cell}"
                 f"</tr>"
             )
 
             if is_s:
-                sub_rows += row
+                sub_rows += row_html
             elif is_c:
-                cons_rows += row
+                cons_rows += row_html
             else:
-                app_rows += row
+                app_rows += row_html
+            
             full_list_str += f"{icon} {n} (剩 {max(0, rem)}天)\n"
+            
         except Exception as e:
             print(f"跳過項目 {item.get('name')}: {e}")
             continue
 
     update_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M')
 
-    # ---- 報表內容（密碼正確後才會顯示）----
+    # ---- HTML 報表內容 (注意訂閱服務的表頭改為「費用」) ----
     report_content = f"""
   <div class="header">
     <h1>🏠 Fiona 家務資產儀表板</h1>
@@ -145,6 +153,7 @@ def process_data():
     <div class="summary-card"><div class="num orange">{warning_count}</div><div class="label">即將到期</div></div>
     <div class="summary-card"><div class="num red">{danger_count}</div><div class="label">需處理</div></div>
   </div>
+  
   <div class="card">
     <div class="card-header"><div class="icon icon-blue">📦</div>硬體設備保固</div>
     <div class="table-wrap"><table>
@@ -152,6 +161,7 @@ def process_data():
       <tbody>{app_rows if app_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
     </table></div>
   </div>
+  
   <div class="card">
     <div class="card-header"><div class="icon icon-orange">♻️</div>耗材更換追蹤</div>
     <div class="table-wrap"><table>
@@ -159,25 +169,24 @@ def process_data():
       <tbody>{cons_rows if cons_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
     </table></div>
   </div>
+  
   <div class="card">
     <div class="card-header"><div class="icon icon-purple">🔔</div>訂閱服務</div>
     <div class="table-wrap"><table>
-      <thead><tr><th>名稱</th><th>訂閱日</th><th>週期(月)</th><th>下次續訂</th><th>剩餘</th><th>狀態</th><th>收據</th></tr></thead>
+      <thead><tr><th>名稱</th><th>訂閱日</th><th>週期(月)</th><th>下次續訂</th><th>剩餘</th><th>狀態</th><th>費用</th></tr></thead>
       <tbody>{sub_rows if sub_rows else '<tr><td colspan="7" style="text-align:center;color:#a0aec0;padding:30px">暫無資料</td></tr>'}</tbody>
     </table></div>
   </div>
   <div class="footer">最後更新：{update_time}</div>"""
 
-    # ---- AES 加密報表內容 ----
+    # ---- AES 加密處理 (維持原樣) ----
     import hashlib, base64
     from os import urandom
     password = "vic2026"
     salt = urandom(16)
     iv = urandom(12)
-    # 用 PBKDF2 從密碼推導 AES key
     key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000, dklen=32)
 
-    # AES-GCM 加密
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     aesgcm = AESGCM(key)
     plaintext = report_content.encode('utf-8')
@@ -187,6 +196,7 @@ def process_data():
     salt_b64 = base64.b64encode(salt).decode()
     iv_b64 = base64.b64encode(iv).decode()
 
+    # 組合最終 HTML (Style 與 Script 維持原樣)
     html = f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -246,8 +256,6 @@ def process_data():
 </style>
 </head>
 <body>
-<noscript><p style="color:#fff;text-align:center;margin-top:40vh">此報表需要啟用 JavaScript 才能檢視。</p></noscript>
-
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
     <h2>🔒 需要驗證</h2>
@@ -257,14 +265,11 @@ def process_data():
     <div class="login-error" id="pwdError">密碼錯誤，請重試</div>
   </div>
 </div>
-
 <div class="container" id="mainContent"></div>
-
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <span class="lightbox-close">&times;</span>
   <img id="lightbox-img" src="" alt="收據">
 </div>
-
 <script>
 function showReceipt(s){{document.getElementById('lightbox-img').src=s;document.getElementById('lightbox').classList.add('active')}}
 function closeLightbox(){{document.getElementById('lightbox').classList.remove('active')}}
@@ -294,13 +299,13 @@ async function checkPwd(){{
     with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
-    # 存一份到 Daily_Report 目錄，標上日期
+    # 存一份到 Daily_Report 目錄
     os.makedirs("Daily_Report", exist_ok=True)
     report_date = today.strftime('%Y-%m-%d')
     with open(f"Daily_Report/warranty_{report_date}.html", "w", encoding="utf-8") as f:
         f.write(html)
 
-    # 複製收據資料夾到 docs/ 讓 GitHub Pages 能讀取
+    # 處理收據圖片
     if os.path.isdir("receipts"):
         import shutil
         docs_receipts = os.path.join("docs", "receipts")
@@ -312,7 +317,7 @@ async function checkPwd(){{
 
 
 # ==========================================
-# 4. LINE 推播訊息
+# 4. LINE 推播訊息 (維持原樣)
 # ==========================================
 def push_message(token, text):
     user_id = os.getenv("LINE_USER_ID")
@@ -341,12 +346,11 @@ def push_message(token, text):
 
 
 # ==========================================
-# 5. 主程式
+# 5. 主程式 (維持原樣)
 # ==========================================
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
 
 if __name__ == "__main__":
-    # 加時間戳破快取
     cache_bust = datetime.now(timezone(timedelta(hours=8))).strftime('%Y%m%d%H%M')
     REPORT_URL = f"{REPORT_BASE_URL}?t={cache_bust}"
     print("🚀 啟動資產檢查任務...")
@@ -354,24 +358,19 @@ if __name__ == "__main__":
     token = get_channel_access_token()
 
     if token:
-        # 只在有「已到期」或「即將到期」項目時才發送 LINE 通知
+        parts = [f"【Fiona 家務提醒 {d_s}】"]
         if expired_l or soon_l:
-            parts = [f"【Fiona 家務提醒 {d_s}】"]
-
             if expired_l:
                 parts.append("⛔ 已到期 / 需更換：")
                 parts.append("\n".join(expired_l))
-
             if soon_l:
                 parts.append("⚠️ 即將到期（20天內）：")
                 parts.append("\n".join(soon_l))
-
-            parts.append(f"📋 完整報告：{REPORT_URL}")
-
-            msg_text = "\n------------------\n".join(parts)
-            push_message(token, msg_text)
         else:
-            msg_text = f"【Fiona 家務提醒 {d_s}】\n🎉 所有設備及耗材狀態正常！\n------------------\n📋 完整報告：{REPORT_URL}"
-            push_message(token, msg_text)
+            parts.append("🎉 所有設備及耗材狀態正常！")
+
+        parts.append(f"📋 完整報告：{REPORT_URL}")
+        msg_text = "\n------------------\n".join(parts)
+        push_message(token, msg_text)
     else:
         print("❌ 任務失敗：無法取得 Token")
