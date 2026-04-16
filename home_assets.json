@@ -83,5 +83,10 @@
         "name": "[訂閱] Goolge One",
         "purchase_date": "2026-05-02",
         "warranty_months": 1
+    },
+    {
+        "name": "[訂閱] Whoscall",
+        "purchase_date": "2025-11-22",
+        "warranty_months": 12
     }
 ]
