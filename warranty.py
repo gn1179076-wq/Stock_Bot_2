@@ -58,6 +58,7 @@ def process_data():
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     home_assets = load_assets()
+    home_assets = sorted(home_assets, key=lambda x: datetime.strptime(x['purchase_date'], "%Y-%m-%d") + timedelta(days=x['warranty_months'] * 30.44))
     app_rows, cons_rows, sub_rows, soon_list, expired_list, full_list_str = "", "", "", [], [], ""
 
     # 統計數據
