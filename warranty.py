@@ -358,14 +358,15 @@ if __name__ == "__main__":
     token = get_channel_access_token()
 
     if token:
-        parts = [f"【Fiona 家務提醒 {d_s}】"]
-        if expired_l or soon_l:
-            if expired_l:
-                parts.append("⛔ 已到期 / 需更換：")
-                parts.append("\n".join(expired_l))
-            if soon_l:
-                parts.append("⚠️ 即將到期（20天內）：")
-                parts.append("\n".join(soon_l))
+    #    parts = [f"【Fiona 家務提醒 {d_s}】"]
+    #    if expired_l or soon_l:
+    #        if expired_l:
+    #            parts.append("⛔ 已到期 / 需更換：")
+    #            parts.append("\n".join(expired_l))
+    #        if soon_l:
+    #            parts.append("⚠️ 即將到期（20天內）：")
+    #            parts.append("\n".join(soon_l))
+            msg_text = "測試發送：" + datetime.now(tz).strftime('%H:%M:%S')
         else:
             parts.append("🎉 所有設備及耗材狀態正常！")
 
