@@ -1,16 +1,26 @@
 name: Vic_Daily_Report
+
 on:
   schedule:
-    - cron: '17 9 * * *'
-  workflow_dispatch:
+    - cron: '17 9 * * *' # 每天下午 5:17 執行
+  workflow_dispatch:      # 支援 GitHub 網頁手動點擊執行
+  issues:                # 支援透過開啟 Issue 觸發
+    types: [opened]
 
 permissions:
   contents: write
   pages: write
   id-token: write
+  issues: write           # 允許 GitHub Action 關閉 Issue
 
 jobs:
   build:
+    # 邏輯判斷：如果是 Issue 觸發，標題必須是 "RUN_BUILD" 才會執行
+    # 如果是定時執行或手動執行，則直接通過
+    if: |
+      github.event_name != 'issues' || 
+      (github.event_name == 'issues' && github.event.issue.title == 'RUN_BUILD')
+    
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -52,7 +62,7 @@ jobs:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
 
-      # 部署 HTML 到 GitHub Pages（取代舊的 git commit 方式）
+      # 部署 HTML 到 GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
@@ -77,3 +87,10 @@ jobs:
             git commit -m "存檔每日報表 $(date +%Y-%m-%d) [skip ci]"
             git push
           fi
+
+      # --- 結尾動作：如果是 Issue 觸發的，自動關閉它 ---
+      - name: 自動關閉觸發指令的 Issue
+        if: github.event_name == 'issues'
+        run: gh issue close ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
