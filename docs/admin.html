@@ -10,7 +10,7 @@
 .header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px 24px;border-radius:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
 .header h1{margin:0;font-size:1.4rem}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;transition:opacity .2s}
-.btn-primary{background:#667eea;color:#fff}.btn-danger{background:#e53e3e;color:#fff}.btn-success{background:#38a169;color:#fff}.btn-sm{padding:5px 12px;font-size:.8rem}.btn:hover{opacity:.85}
+.btn-primary{background:#667eea;color:#ffhf}.btn-danger{background:#e53e3e;color:#fff}.btn-success{background:#38a169;color:#fff}.btn-sm{padding:5px 12px;font-size:.8rem}.btn:hover{opacity:.85}
 .card{background:#fff;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
 table{width:100%;border-collapse:collapse}
 th{background:#f7fafc;color:#718096;font-size:.75rem;font-weight:700;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:2px solid #edf2f7}
@@ -88,7 +88,7 @@ async function loadData(){
   try{
     const data=await apiGet(`contents/${FILE_PATH}?ref=${BRANCH}`);
     fileSha=data.sha;
-    assets=JSON.parse(atob(data.content.replace(/\n/g,'')));
+            assets=JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,'')))));
     st.innerHTML='<span class="status ok">已連線</span>';
     renderTable();
 }catch(e){st.innerHTML=`<span class="status err">失敗: ${e.message}</span>`}
