@@ -360,13 +360,25 @@ if __name__ == "__main__":
     token = get_channel_access_token()
 
     if token:
-        # --- 原本產生 msg_text 的邏輯可以不用動，我們直接在下面蓋掉它 ---
-        
-        # 【測試用：強行覆蓋訊息內容，排除網址被過濾的可能性】
-        msg_text = "測試發送：" + datetime.now(tz).strftime('%H:%M:%S')
-        
-        # 發送訊息
-        push_message(token, msg_text)
+        # 只在有「已到期」或「即將到期」項目時才發送 LINE 通知
+        if expired_l or soon_l:
+            parts = [f"【Fiona 家務提醒 {d_s}】"]
+
+            if expired_l:
+                parts.append("⛔ 已到期 / 需更換：")
+                parts.append("\n".join(expired_l))
+
+            if soon_l:
+                parts.append("⚠️ 即將到期（20天內）：")
+                parts.append("\n".join(soon_l))
+
+            parts.append(f"📋 完整報告：{REPORT_URL}")
+
+            msg_text = "\n------------------\n".join(parts)
+            push_message(token, msg_text)
+        else:
+            msg_text = f"【Fiona 家務提醒 {d_s}】\n🎉 所有設備及耗材狀態正常！\n------------------\n📋 完整報告：{REPORT_URL}"
+            push_message(token, msg_text)
     else:
-        # 如果你能在 Log 看到這一行，代表是 Secret 設定沒抓到
         print("❌ 任務失敗：無法取得 Token")
+
