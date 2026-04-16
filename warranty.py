@@ -351,8 +351,10 @@ def push_message(token, text):
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
 
 if __name__ == "__main__":
-    cache_bust = datetime.now(timezone(timedelta(hours=8))).strftime('%Y%m%d%H%M')
+    tz = timezone(timedelta(hours=8)) # 確保這行有定義 tz，或是用 datetime.now(timezone(timedelta(hours=8)))
+    cache_bust = datetime.now(tz).strftime('%Y%m%d%H%M')
     REPORT_URL = f"{REPORT_BASE_URL}?t={cache_bust}"
+    
     print("🚀 啟動資產檢查任務...")
     soon_l, expired_l, full_list_str, d_s = process_data()
     token = get_channel_access_token()
