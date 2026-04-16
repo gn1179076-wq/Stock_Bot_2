@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -66,3 +66,16 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # 將每日報表存檔到 Daily_Report 目錄
+      - name: 存檔每日報表到 Daily_Report
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Daily_Report/
+          if git diff --staged --quiet; then
+            echo "沒有新報表，跳過"
+          else
+            git commit -m "存檔每日報表 $(date +%Y-%m-%d) [skip ci]"
+            git push
+          fi
