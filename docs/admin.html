@@ -161,7 +161,7 @@ function renderTable(){
   ];
   let html='';
   cats.forEach(cat=>{
-    const items=assets.map((a,i)=>({a,i})).filter(({a})=>cat.filter(a));
+    const items=assets.map((a,i)=>({a,i})).filter(({a})=>cat.filter(a)).sort((x,y)=>new Date(x.a.purchase_date)-new Date(y.a.purchase_date));
     if(!items.length)return;
     html+=`<h3 style="margin:20px 0 10px;font-size:.95rem;color:#4a5568">${cat.label}</h3><div style="overflow-x:auto"><table><thead><tr><th>名稱</th><th>日期</th><th>月數</th><th>收據</th><th>操作</th></tr></thead><tbody>`;
     items.forEach(({a,i})=>{
