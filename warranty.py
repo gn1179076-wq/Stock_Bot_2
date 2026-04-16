@@ -280,6 +280,9 @@ if __name__ == "__main__":
     print("🚀 啟動資產檢查任務 (Telegram 版)...")
     soon_l, expired_l, d_s = process_data()
     
+    # 定義後台網址
+    ADMIN_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/admin.html"
+    
     # 組合 Telegram 訊息 (支援 HTML 語法)
     parts = [f"<b>🏠 Fiona 家務提醒 {d_s}</b>"]
 
