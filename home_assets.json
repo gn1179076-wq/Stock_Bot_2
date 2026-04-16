@@ -73,5 +73,25 @@
         "purchase_date": "2026-04-06",
         "warranty_months": 12,
         "receipt": "receipts/NANK Runner 4.jpg"
+    },
+    {
+        "name": "[耗材] Google Tag x3",
+        "purchase_date": "2026-04-13",
+        "warranty_months": 12
+    },
+    {
+        "name": "[訂閱] Goolge One",
+        "purchase_date": "2026-05-02",
+        "warranty_months": 1
+    },
+    {
+        "name": "[訂閱] Whoscall",
+        "purchase_date": "2025-11-22",
+        "warranty_months": 12
+    },
+    {
+        "name": "[訂閱] Youtube",
+        "purchase_date": "2026-05-01",
+        "warranty_months": 1
     }
 ]
