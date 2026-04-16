@@ -13,5 +13,5 @@
     {"name": "[耗材] Samsung Tag x3 電池", "purchase_date": "2026-04-13", "warranty_months": 12},
     {"name": "[耗材] 三樓瓦斯", "purchase_date": "2026-04-14", "warranty_months": 3},
 
-    {"name": "[訂閱] Claude", "purchase_date": "2026-04-16", "warranty_months": 12, "receipt": "receipts/claude.jpg"}
+    {"name": "[訂閱] Claude", "purchase_date": "2026-04-16", "warranty_months": 12, "receipt": "receipts/Claude.jpg"}
 ]
