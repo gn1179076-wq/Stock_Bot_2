@@ -78,5 +78,10 @@
         "name": "[訂閱] Youtube",
         "purchase_date": "2026-05-01",
         "warranty_months": 1
+    },
+    {
+        "name": "[訂閱] Google One",
+        "purchase_date": "2026-06-02",
+        "warranty_months": 1
     }
 ]
