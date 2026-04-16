@@ -293,9 +293,9 @@ if __name__ == "__main__":
     else:
         parts.append("\n🎉 所有設備及耗材狀態正常！")
 
-    parts.append(f"\n📋 <a href='{REPORT_BASE_URL}'>查看完整儀表板</a>")
+    # 加入傳送門連結
+    parts.append(f"\n📋 <a href='{REPORT_BASE_URL}'>查看儀表板</a>")
+    parts.append(f"🛠 <a href='{ADMIN_URL}'>管理後台</a>")
     
     msg_text = "\n".join(parts)
-    
-    # 發送通知
     push_tg_message(msg_text)
