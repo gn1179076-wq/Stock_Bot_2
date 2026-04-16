@@ -78,5 +78,10 @@
         "name": "[耗材] Google Tag x3",
         "purchase_date": "2026-04-13",
         "warranty_months": 12
+    },
+    {
+        "name": "[訂閱] Goolge One",
+        "purchase_date": "2026-05-02",
+        "warranty_months": 1
     }
 ]
