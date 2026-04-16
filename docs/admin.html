@@ -1,269 +1,264 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-  <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>管理後台</title>
-    <style>
-          *,*::before,*::after{box-sizing:border-box}
-          body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7fafc;margin:0;padding:20px;color:#2d3748}
-          .header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px 24px;border-radius:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
-          .header h1{margin:0;font-size:1.4rem}
-          .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;transition:opacity .2s}
-          .btn-primary{background:#667eea;color:#fff}.btn-danger{background:#e53e3e;color:#fff}.btn-success{background:#38a169;color:#fff}.btn-sm{padding:5px 12px;font-size:.8rem}.btn:hover{opacity:.85}
-          .card{background:#fff;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
-          table{width:100%;border-collapse:collapse}
-          th{background:#f7fafc;color:#718096;font-size:.75rem;font-weight:700;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:2px solid #edf2f7}
-          td{padding:12px 14px;font-size:.88rem;border-bottom:1px solid #f7fafc;vertical-align:middle}
-          tr:hover{background:#f7fafc}
-          .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;justify-content:center;align-items:center}
-          .modal.active{display:flex}
-          .modal-box{background:#fff;border-radius:16px;padding:28px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
-          .modal-box h3{margin:0 0 20px;font-size:1.1rem}
-          .form-group{margin-bottom:16px}
-          .form-group label{display:block;font-size:.82rem;font-weight:600;color:#4a5568;margin-bottom:6px}
-          .form-group input,.form-group select{width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;outline:none}
-          .form-group input:focus,.form-group select:focus{border-color:#667eea}
-          .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-          .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-          .token-bar{background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-          .token-bar input{flex:1;padding:8px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem;outline:none}
-          .token-bar input:focus{border-color:#667eea}
-          .status{font-size:.8rem;padding:4px 10px;border-radius:6px}
-          .status.ok{background:#f0fff4;color:#38a169}.status.err{background:#fff5f5;color:#e53e3e}
-          .upload-area{border:2px dashed #cbd5e0;border-radius:8px;padding:16px;text-align:center;cursor:pointer}
-          .upload-area:hover{border-color:#667eea}
-          .upload-area input{display:none}
-          #toast{position:fixed;bottom:24px;right:24px;background:#2d3748;color:#fff;padding:12px 20px;border-radius:10px;font-size:.88rem;display:none;z-index:99999}
-          .tabs{display:flex;gap:8px;margin-bottom:20px}
-          .tab-btn{padding:10px 22px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;font-size:.9rem;font-weight:600;cursor:pointer;color:#718096;transition:all .2s}
-          .tab-btn.active{background:#667eea;color:#fff;border-color:#667eea}
-          .tab-panel{display:none}
-          .tab-panel.active{display:block}
-          .market-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700}
-          .market-TW{background:#ebf8ff;color:#2b6cb0}
-          .market-US{background:#f0fff4;color:#276749}
-          .market-HK{background:#fff5f5;color:#c53030}
-          .market-JP{background:#fffff0;color:#744210}
-        </style>
-  </head>
-  <body>
-      <div class="token-bar">
-            <span style="font-weight:700;color:#4a5568;white-space:nowrap">GitHub Token</span>span>
-            <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
-            <button class="btn btn-primary btn-sm" onclick="loadAll()">載入</button>button>
-            <span id="tokenStatus"></span>span>
-      </div>div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理後台</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7fafc;margin:0;padding:20px;color:#2d3748}
+    .header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px 24px;border-radius:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
+    .header h1{margin:0;font-size:1.4rem}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+    .btn-primary{background:#667eea;color:#fff}.btn-danger{background:#e53e3e;color:#fff}.btn-success{background:#38a169;color:#fff}.btn-sm{padding:5px 12px;font-size:.8rem}.btn:hover{opacity:.85}
+    .card{background:#fff;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#f7fafc;color:#718096;font-size:.75rem;font-weight:700;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:2px solid #edf2f7}
+    td{padding:12px 14px;font-size:.88rem;border-bottom:1px solid #f7fafc;vertical-align:middle}
+    tr:hover{background:#f7fafc}
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;justify-content:center;align-items:center}
+    .modal.active{display:flex}
+    .modal-box{background:#fff;border-radius:16px;padding:28px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
+    .modal-box h3{margin:0 0 20px;font-size:1.1rem}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-size:.82rem;font-weight:600;color:#4a5568;margin-bottom:6px}
+    .form-group input,.form-group select{width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;outline:none}
+    .form-group input:focus,.form-group select:focus{border-color:#667eea}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+    .token-bar{background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .token-bar input{flex:1;padding:8px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem;outline:none}
+    .token-bar input:focus{border-color:#667eea}
+    .status{font-size:.8rem;padding:4px 10px;border-radius:6px}
+    .status.ok{background:#f0fff4;color:#38a169}.status.err{background:#fff5f5;color:#e53e3e}
+    .upload-area{border:2px dashed #cbd5e0;border-radius:8px;padding:16px;text-align:center;cursor:pointer}
+    .upload-area:hover{border-color:#667eea}
+    .upload-area input{display:none}
+    #toast{position:fixed;bottom:24px;right:24px;background:#2d3748;color:#fff;padding:12px 20px;border-radius:10px;font-size:.88rem;display:none;z-index:99999}
+    .tabs{display:flex;gap:8px;margin-bottom:20px}
+    .tab-btn{padding:10px 22px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;font-size:.9rem;font-weight:600;cursor:pointer;color:#718096;transition:all .2s}
+    .tab-btn.active{background:#667eea;color:#fff;border-color:#667eea}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+    .market-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700}
+    .market-TW{background:#ebf8ff;color:#2b6cb0}
+    .market-US{background:#f0fff4;color:#276749}
+    .market-HK{background:#fff5f5;color:#c53030}
+    .market-JP{background:#fffff0;color:#744210}
+  </style>
+</head>
+<body>
+  <div class="token-bar">
+    <span style="font-weight:700;color:#4a5568;white-space:nowrap">GitHub Token</span>
+    <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+    <button class="btn btn-primary btn-sm" onclick="loadAll()">載入</button>
+    <span id="tokenStatus"></span>
+  </div>
 
-      <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('assets')">🏠 家務資產</button>button>
-            <button class="tab-btn" onclick="switchTab('portfolio')">📈 股票投資組合</button>button>
-      </div>div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('assets')">🏠 家務資產</button>
+    <button class="tab-btn" onclick="switchTab('portfolio')">📈 股票投資組合</button>
+  </div>
 
-      <div class="tab-panel active" id="tab-assets">
-            <div class="header">
-                    <h1>家務資產管理後台</h1>
-                  <button class="btn btn-success" onclick="openAdd()">+ 新增項目</button>button>
-            </div>div>
-          <div class="card" id="tableArea"><p style="text-align:center;color:#a0aec0;padding:40px 0">請先輸入 GitHub Token 並點擊「載入」</p>p></div>div>
-      </div>div>
-  
-    <div class="tab-panel" id="tab-portfolio">
-        <div class="header" style="background:linear-gradient(135deg,#48bb78,#2f855a)">
-              <h1>股票投資組合管理</h1>
-              <button class="btn btn-success" onclick="openAddStock()">+ 新增持股</button>button>
-        </div>div>
-        <div class="card" id="portfolioArea"><p style="text-align:center;color:#a0aec0;padding:40px 0">請先輸入 GitHub Token 並點擊「載入」</p>p></div>div>
-    </div>div>
-  
-    <div class="modal" id="editModal">
-        <div class="modal-box">
-              <h3 id="modalTitle">新增項目</h3>
-              <div class="form-group"><label>名稱</label><input type="text" id="fName" placeholder="例：iPhone 17 / [耗材] 濾網 / [訂閱] Claude"></div>div>
-              <div class="form-row">
-                      <div class="form-group"><label>購買日期</label><input type="date" id="fDate"></div>div>
-                      <div class="form-group"><label>保固月數</label><input type="number" id="fMonths" min="1" placeholder="12"></div>div>
-              </div>div>
-              <div class="form-group">
-                      <label>收據圖片（選填）</label>
-                      <div class="upload-area" onclick="document.getElementById('fFile').click()">
-                                <div>點擊上傳圖片</div>
-                                <div id="uploadPreview" style="margin-top:8px;font-size:.82rem;color:#667eea"></div>
-                                <input type="file" id="fFile" accept="image/*,.pdf" onchange="previewFile()">
-                      </div>
-                      <input type="text" id="fReceipt" placeholder="receipts/xxx.jpg" style="margin-top:6px;width:100%;padding:8px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem;outline:none">
-              </div>
-              <div class="modal-actions">
-                        <button class="btn" onclick="closeModal()" style="background:#e2e8f0;color:#4a5568">取消</button>button>
-                        <button class="btn btn-primary" id="saveBtn" onclick="saveItem()">儲存</button>button>
-              </div>
-        </div>
+  <div class="tab-panel active" id="tab-assets">
+    <div class="header">
+      <h1>家務資產管理後台</h1>
+      <button class="btn btn-success" onclick="openAdd()">+ 新增項目</button>
     </div>
+    <div class="card" id="tableArea"><p style="text-align:center;color:#a0aec0;padding:40px 0">請先輸入 GitHub Token 並點擊「載入」</p></div>
+  </div>
 
-      <div class="modal" id="stockModal">
-            <div class="modal-box">
-                    <h3 id="stockModalTitle">新增持股</h3>
-                    <div class="form-group"><label>名稱</label>label><input type="text" id="sName" placeholder="例：0056 元大高股息 / TSLA Tesla"></div>
-                    <div class="form-row">
-                              <div class="form-group"><label>股票代號 (Ticker)</label>label><input type="text" id="sTicker" placeholder="例：0056.TW / TSLA"></div>
-                              <div class="form-group">
-                                          <label>市場</label>label>
-                                          <select id="sMarket">
-                                                        <option value="TW">TW（台灣）</option>option>
-                                                        <option value="US">US（美國）</option>option>
-                                                        <option value="HK">HK（香港）</option>option>
-                                                        <option value="JP">JP（日本）</option>option>
-                                          </select>select>
-                              </div>
-                    </div>
-                    <div class="form-row">
-                              <div class="form-group"><label>持股數量</label>label><input type="number" id="sShares" min="1" placeholder="1000"></div>
-                              <div class="form-group"><label>成本價（每股）</label>label><input type="number" id="sCost" step="0.001" min="0" placeholder="32.38"></div>
-                    </div>
-                    <div class="modal-actions">
-                              <button class="btn" onclick="closeStockModal()" style="background:#e2e8f0;color:#4a5568">取消</button>button>
-                              <button class="btn btn-primary" id="stockSaveBtn" onclick="saveStock()">儲存</button>button>
-                    </div>
-            </div>
+  <div class="tab-panel" id="tab-portfolio">
+    <div class="header" style="background:linear-gradient(135deg,#48bb78,#2f855a)">
+      <h1>股票投資組合管理</h1>
+      <button class="btn btn-success" onclick="openAddStock()">+ 新增持股</button>
+    </div>
+    <div class="card" id="portfolioArea"><p style="text-align:center;color:#a0aec0;padding:40px 0">請先輸入 GitHub Token 並點擊「載入」</p></div>
+  </div>
+
+  <div class="modal" id="editModal">
+    <div class="modal-box">
+      <h3 id="modalTitle">新增項目</h3>
+      <div class="form-group"><label>名稱</label><input type="text" id="fName" placeholder="例：iPhone 17 / [耗材] 濾網 / [訂閱] Claude"></div>
+      <div class="form-row">
+        <div class="form-group"><label>購買日期</label><input type="date" id="fDate"></div>
+        <div class="form-group"><label>保固月數</label><input type="number" id="fMonths" min="1" placeholder="12"></div>
       </div>
-
-      <div class="modal" id="lightbox" onclick="this.classList.remove('active')">
-            <img id="lbImg" src="" style="max-width:90%;max-height:85%;border-radius:12px">
+      <div class="form-group">
+        <label>收據圖片（選填）</label>
+        <div class="upload-area" onclick="document.getElementById('fFile').click()">
+          <div>點擊上傳圖片</div>
+          <div id="uploadPreview" style="margin-top:8px;font-size:.82rem;color:#667eea"></div>
+          <input type="file" id="fFile" accept="image/*,.pdf" onchange="previewFile()">
+        </div>
+        <input type="text" id="fReceipt" placeholder="receipts/xxx.jpg" style="margin-top:6px;width:100%;padding:8px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem;outline:none">
       </div>
-      <div id="toast"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()" style="background:#e2e8f0;color:#4a5568">取消</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveItem()">儲存</button>
+      </div>
+    </div>
+  </div>
 
-    <script>
-      const REPO="gn1179076-wq/Stock_Bot_2",BRANCH="Main";
-      const FILE_PATH="home_assets.json",PORTFOLIO_PATH="portfolio.json";
-      const BASE_URL="https://gn1179076-wq.github.io/Stock_Bot_2";
-      let assets=[],fileSha="",editIndex=-1;
-      let portfolio=[],portfolioSha="",stockEditIndex=-1;
-      function token(){return document.getElementById('ghToken').value.trim()}
-      async function apiGet(p){const r=await fetch(`https://api.github.com/repos/${REPO}/${p}`,{headers:{Authorization:`Bearer ${token()}`,Accept:'application/vnd.github+json'}});if(!r.ok)throw new Error(r.status);return r.json()}
-      async function apiPut(p,b){const r=await fetch(`https://api.github.com/repos/${REPO}/${p}`,{method:'PUT',headers:{Authorization:`Bearer ${token()}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(b)});if(!r.ok){const e=await r.json();throw new Error(e.message||r.status)}return r.json()}
-      function switchTab(tab){document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['assets','portfolio'][i]===tab));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active')}
-      async function loadAll(){
-          const st=document.getElementById('tokenStatus');st.innerHTML='';
-          try{
-                const d1=await apiGet(`contents/${FILE_PATH}?ref=${BRANCH}`);
-                fileSha=d1.sha;assets=JSON.parse(decodeURIComponent(escape(atob(d1.content.replace(/\n/g,'')))));
-                const d2=await apiGet(`contents/${PORTFOLIO_PATH}?ref=${BRANCH}`);
-                portfolioSha=d2.sha;portfolio=JSON.parse(decodeURIComponent(escape(atob(d2.content.replace(/\n/g,'')))));
-                st.innerHTML='<span class="status ok">已連線</span>';
-                renderTable();renderPortfolio();
-          }catch(e){st.innerHTML=`<span class="status err">失敗: ${e.message}</span>`}
-      }
-      function renderTable(){
-          const cats=[
-            {label:'📦 硬體設備保固',filter:a=>!a.name.includes('[耗材]')&&!a.name.includes('[訂閱]')},
-            {label:'♻️ 耗材更換',filter:a=>a.name.includes('[耗材]')},
-            {label:'🔔 訂閱服務',filter:a=>a.name.includes('[訂閱]')}
-              ];
-          let html='';
-          cats.forEach(cat=>{
-                const items=assets.map((a,i)=>({a,i})).filter(({a})=>cat.filter(a));
-                if(!items.length)return;
-                html+=`<h3 style="margin:20px 0 10px;font-size:.95rem;color:#4a5568">${cat.label}</h3><div style="overflow-x:auto"><table><thead><tr><th>名稱</th><th>日期</th><th>月數</th><th>收據</th><th>操作</th></tr></thead><tbody>`;
-                items.forEach(({a,i})=>{
-                        const rec=a.receipt?`<img src="${BASE_URL}/${a.receipt}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showLb('${BASE_URL}/${a.receipt}')" onerror="this.style.display='none'">`:'—';
-                        html+=`<tr><td><strong>${a.name}</strong></td><td>${a.purchase_date}</td><td style="text-align:center">${a.warranty_months}</td><td>${rec}</td><td><button class="btn btn-primary btn-sm" onclick="openEdit(${i})">編輯</button><button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteItem(${i})">刪除</button></td></tr>`;
-                });
-                html+='</tbody></table></div>';
-          });
-          document.getElementById('tableArea').innerHTML=html||'<p style="text-align:center;color:#a0aec0;padding:20px">暫無資料</p>';
-      }
-      function openAdd(){editIndex=-1;document.getElementById('modalTitle').textContent='新增項目';document.getElementById('fName').value='';document.getElementById('fDate').value=new Date().toISOString().slice(0,10);document.getElementById('fMonths').value='12';document.getElementById('fReceipt').value='';document.getElementById('fFile').value='';document.getElementById('uploadPreview').textContent='';document.getElementById('editModal').classList.add('active')}
-      function openEdit(i){editIndex=i;const a=assets[i];document.getElementById('modalTitle').textContent='編輯項目';document.getElementById('fName').value=a.name;document.getElementById('fDate').value=a.purchase_date;document.getElementById('fMonths').value=a.warranty_months;document.getElementById('fReceipt').value=a.receipt||'';document.getElementById('fFile').value='';document.getElementById('uploadPreview').textContent='';document.getElementById('editModal').classList.add('active')}
-      function closeModal(){document.getElementById('editModal').classList.remove('active')}
-      function previewFile(){const f=document.getElementById('fFile').files[0];if(f){document.getElementById('uploadPreview').textContent='已選：'+f.name;document.getElementById('fReceipt').value='receipts/'+f.name}}
-      async function uploadFile(){
-          const f=document.getElementById('fFile').files[0];if(!f)return null;
-          return new Promise((resolve,reject)=>{
-                const reader=new FileReader();
-                reader.onload=async e=>{
-                        const b64=e.target.result.split(',')[1],path=`receipts/${f.name}`;
-                        try{let sha='';try{const ex=await apiGet(`contents/${path}`);sha=ex.sha}catch(e){}
-                                    await apiPut(`contents/${path}`,{message:`Upload: ${f.name}`,content:b64,sha:sha||undefined,branch:BRANCH});resolve(path)
-                           }catch(err){reject(err)}
-                };reader.readAsDataURL(f)
-          })
-      }
-      async function saveItem(){
-          const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='儲存中...';
-          try{
-                let receiptPath=document.getElementById('fReceipt').value.trim();
-                if(document.getElementById('fFile').files[0]){toast('上傳收據中...');receiptPath=await uploadFile()}
-                const item={name:document.getElementById('fName').value.trim(),purchase_date:document.getElementById('fDate').value,warranty_months:parseInt(document.getElementById('fMonths').value)||12};
-                if(receiptPath)item.receipt=receiptPath;
-                if(!item.name||!item.purchase_date){alert('請填寫名稱和日期');return}
-                if(editIndex>=0)assets[editIndex]=item;else assets.push(item);
-                await commitAssets('Update home_assets.json');closeModal();renderTable();toast('已儲存！');
-          }catch(e){toast('錯誤：'+e.message)}finally{btn.disabled=false;btn.textContent='儲存'}
-      }
-      async function deleteItem(i){
-          if(!confirm(`確定要刪除「${assets[i].name}」？`))return;
-          assets.splice(i,1);
-          try{await commitAssets('Delete from home_assets.json');renderTable();toast('已刪除！')}catch(e){toast('錯誤：'+e.message)}
-      }
-      async function commitAssets(msg){
-          const content=btoa(unescape(encodeURIComponent(JSON.stringify(assets,null,4))));
-          const result=await apiPut(`contents/${FILE_PATH}`,{message:msg,content,sha:fileSha,branch:BRANCH});
-          fileSha=result.content.sha;
-      }
-      function renderPortfolio(){
-          const markets=['TW','US','HK','JP'];
-          const marketLabel={'TW':'🇹🇼 台股','US':'🇺🇸 美股','HK':'🇭🇰 港股','JP':'🇯🇵 日股'};
-          let html='';
-          markets.forEach(mkt=>{
-                const items=portfolio.map((s,i)=>({s,i})).filter(({s})=>s.market===mkt);
-                if(!items.length)return;
-                const totalCost=items.reduce((acc,{s})=>acc+s.shares*s.cost_price,0);
-                html+=`<h3 style="margin:20px 0 10px;font-size:.95rem;color:#4a5568">${marketLabel[mkt]}</h3><div style="overflow-x:auto"><table><thead><tr><th>名稱</th><th>代號</th><th>市場</th><th style="text-align:right">持股數</th><th style="text-align:right">成本價</th><th style="text-align:right">總成本</th><th>操作</th></tr></thead><tbody>`;
-                items.forEach(({s,i})=>{
-                        const cost=(s.shares*s.cost_price).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-                        const costPrice=s.cost_price.toLocaleString(undefined,{minimumFractionDigits:3,maximumFractionDigits:3});
-                        html+=`<tr><td><strong>${s.name}</strong></td><td style="font-family:monospace;color:#667eea">${s.ticker}</td><td><span class="market-badge market-${s.market}">${s.market}</span></td><td style="text-align:right">${s.shares.toLocaleString()}</td><td style="text-align:right">${costPrice}</td><td style="text-align:right;font-weight:600">${cost}</td><td><button class="btn btn-primary btn-sm" onclick="openEditStock(${i})">編輯</button><button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteStock(${i})">刪除</button></td></tr>`;
-                });
-                html+=`</tbody><tfoot><tr><td colspan="5" style="text-align:right;font-weight:700;color:#4a5568;padding:10px 14px">小計成本</td><td style="text-align:right;font-weight:700;color:#2d3748;padding:10px 14px">${totalCost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td></td></tr></tfoot></table></div>`;
-          });
-          document.getElementById('portfolioArea').innerHTML=html||'<p style="text-align:center;color:#a0aec0;padding:20px">暫無持股資料</p>';
-      }
-      function openAddStock(){stockEditIndex=-1;document.getElementById('stockModalTitle').textContent='新增持股';document.getElementById('sName').value='';document.getElementById('sTicker').value='';document.getElementById('sShares').value='';document.getElementById('sCost').value='';document.getElementById('sMarket').value='TW';document.getElementById('stockModal').classList.add('active')}
-      function openEditStock(i){stockEditIndex=i;const s=portfolio[i];document.getElementById('stockModalTitle').textContent='編輯持股';document.getElementById('sName').value=s.name;document.getElementById('sTicker').value=s.ticker;document.getElementById('sShares').value=s.shares;document.getElementById('sCost').value=s.cost_price;document.getElementById('sMarket').value=s.market;document.getElementById('stockModal').classList.add('active')}
-      function closeStockModal(){document.getElementById('stockModal').classList.remove('active')}
-      async function saveStock(){
-          const btn=document.getElementById('stockSaveBtn');btn.disabled=true;btn.textContent='儲存中...';
-          try{
-                const name=document.getElementById('sName').value.trim();
-                const ticker=document.getElementById('sTicker').value.trim();
-                const shares=parseInt(document.getElementById('sShares').value);
-                const cost_price=parseFloat(document.getElementById('sCost').value);
-                const market=document.getElementById('sMarket').value;
-                if(!name||!ticker||!shares||isNaN(cost_price)){alert('請填寫所有欄位');return}
-                const item={name,ticker,shares,cost_price,market};
-                if(stockEditIndex>=0)portfolio[stockEditIndex]=item;else portfolio.push(item);
-                await commitPortfolio(stockEditIndex>=0?'Update portfolio.json':'Add to portfolio.json');
-                closeStockModal();renderPortfolio();toast('已儲存！');
-          }catch(e){toast('錯誤：'+e.message)}finally{btn.disabled=false;btn.textContent='儲存'}
-      }
-      async function deleteStock(i){
-          if(!confirm(`確定要刪除「${portfolio[i].name}」？`))return;
-          portfolio.splice(i,1);
-          try{await commitPortfolio('Delete from portfolio.json');renderPortfolio();toast('已刪除！')}catch(e){toast('錯誤：'+e.message)}
-      }
-      async function commitPortfolio(msg){
-          const content=btoa(unescape(encodeURIComponent(JSON.stringify(portfolio,null,4))));
-          const result=await apiPut(`contents/${PORTFOLIO_PATH}`,{message:msg,content,sha:portfolioSha,branch:BRANCH});
-          portfolioSha=result.content.sha;
-      }
-      function showLb(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('active')}
-      let toastTimer;
-      function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',3000)}
-    </script>
-  </body>
-</html>html>
-    </script>
-              </div></label></label></h1></h1>
-  </body>
-    </style></title>
-  </head>
+  <div class="modal" id="stockModal">
+    <div class="modal-box">
+      <h3 id="stockModalTitle">新增持股</h3>
+      <div class="form-group"><label>名稱</label><input type="text" id="sName" placeholder="例：0056 元大高股息 / TSLA Tesla"></div>
+      <div class="form-row">
+        <div class="form-group"><label>股票代號 (Ticker)</label><input type="text" id="sTicker" placeholder="例：0056.TW / TSLA"></div>
+        <div class="form-group">
+          <label>市場</label>
+          <select id="sMarket">
+            <option value="TW">TW（台灣）</option>
+            <option value="US">US（美國）</option>
+            <option value="HK">HK（香港）</option>
+            <option value="JP">JP（日本）</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>持股數量</label><input type="number" id="sShares" min="1" placeholder="1000"></div>
+        <div class="form-group"><label>成本價（每股）</label><input type="number" id="sCost" step="0.001" min="0" placeholder="32.38"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeStockModal()" style="background:#e2e8f0;color:#4a5568">取消</button>
+        <button class="btn btn-primary" id="stockSaveBtn" onclick="saveStock()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="lightbox" onclick="this.classList.remove('active')">
+    <img id="lbImg" src="" style="max-width:90%;max-height:85%;border-radius:12px">
+  </div>
+  <div id="toast"></div>
+
+<script>
+const REPO="gn1179076-wq/Stock_Bot_2",BRANCH="Main";
+const FILE_PATH="home_assets.json",PORTFOLIO_PATH="portfolio.json";
+const BASE_URL="https://gn1179076-wq.github.io/Stock_Bot_2";
+let assets=[],fileSha="",editIndex=-1;
+let portfolio=[],portfolioSha="",stockEditIndex=-1;
+function token(){return document.getElementById('ghToken').value.trim()}
+async function apiGet(p){const r=await fetch(`https://api.github.com/repos/${REPO}/${p}`,{headers:{Authorization:`Bearer ${token()}`,Accept:'application/vnd.github+json'}});if(!r.ok)throw new Error(r.status);return r.json()}
+async function apiPut(p,b){const r=await fetch(`https://api.github.com/repos/${REPO}/${p}`,{method:'PUT',headers:{Authorization:`Bearer ${token()}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(b)});if(!r.ok){const e=await r.json();throw new Error(e.message||r.status)}return r.json()}
+function switchTab(tab){document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['assets','portfolio'][i]===tab));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active')}
+async function loadAll(){
+  const st=document.getElementById('tokenStatus');st.innerHTML='';
+  try{
+    const d1=await apiGet(`contents/${FILE_PATH}?ref=${BRANCH}`);
+    fileSha=d1.sha;assets=JSON.parse(decodeURIComponent(escape(atob(d1.content.replace(/\n/g,'')))));
+    const d2=await apiGet(`contents/${PORTFOLIO_PATH}?ref=${BRANCH}`);
+    portfolioSha=d2.sha;portfolio=JSON.parse(decodeURIComponent(escape(atob(d2.content.replace(/\n/g,'')))));
+    st.innerHTML='<span class="status ok">已連線</span>';
+    renderTable();renderPortfolio();
+  }catch(e){st.innerHTML=`<span class="status err">失敗: ${e.message}</span>`}
+}
+function renderTable(){
+  const cats=[
+    {label:'📦 硬體設備保固',filter:a=>!a.name.includes('[耗材]')&&!a.name.includes('[訂閱]')},
+    {label:'♻️ 耗材更換',filter:a=>a.name.includes('[耗材]')},
+    {label:'🔔 訂閱服務',filter:a=>a.name.includes('[訂閱]')}
+  ];
+  let html='';
+  cats.forEach(cat=>{
+    const items=assets.map((a,i)=>({a,i})).filter(({a})=>cat.filter(a));
+    if(!items.length)return;
+    html+=`<h3 style="margin:20px 0 10px;font-size:.95rem;color:#4a5568">${cat.label}</h3><div style="overflow-x:auto"><table><thead><tr><th>名稱</th><th>日期</th><th>月數</th><th>收據</th><th>操作</th></tr></thead><tbody>`;
+    items.forEach(({a,i})=>{
+      const rec=a.receipt?`<img src="${BASE_URL}/${a.receipt}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showLb('${BASE_URL}/${a.receipt}')" onerror="this.style.display='none'">`:'—';
+      html+=`<tr><td><strong>${a.name}</strong></td><td>${a.purchase_date}</td><td style="text-align:center">${a.warranty_months}</td><td>${rec}</td><td><button class="btn btn-primary btn-sm" onclick="openEdit(${i})">編輯</button> <button class="btn btn-danger btn-sm" onclick="deleteItem(${i})">刪除</button></td></tr>`;
+    });
+    html+='</tbody></table></div>';
+  });
+  document.getElementById('tableArea').innerHTML=html||'<p style="text-align:center;color:#a0aec0;padding:20px">暫無資料</p>';
+}
+function openAdd(){editIndex=-1;document.getElementById('modalTitle').textContent='新增項目';document.getElementById('fName').value='';document.getElementById('fDate').value=new Date().toISOString().slice(0,10);document.getElementById('fMonths').value='12';document.getElementById('fReceipt').value='';document.getElementById('fFile').value='';document.getElementById('uploadPreview').textContent='';document.getElementById('editModal').classList.add('active')}
+function openEdit(i){editIndex=i;const a=assets[i];document.getElementById('modalTitle').textContent='編輯項目';document.getElementById('fName').value=a.name;document.getElementById('fDate').value=a.purchase_date;document.getElementById('fMonths').value=a.warranty_months;document.getElementById('fReceipt').value=a.receipt||'';document.getElementById('fFile').value='';document.getElementById('uploadPreview').textContent='';document.getElementById('editModal').classList.add('active')}
+function closeModal(){document.getElementById('editModal').classList.remove('active')}
+function previewFile(){const f=document.getElementById('fFile').files[0];if(f){document.getElementById('uploadPreview').textContent='已選：'+f.name;document.getElementById('fReceipt').value='receipts/'+f.name}}
+async function uploadFile(){
+  const f=document.getElementById('fFile').files[0];if(!f)return null;
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=async e=>{
+      const b64=e.target.result.split(',')[1],path=`receipts/${f.name}`;
+      try{let sha='';try{const ex=await apiGet(`contents/${path}`);sha=ex.sha}catch(e){}
+        await apiPut(`contents/${path}`,{message:`Upload: ${f.name}`,content:b64,sha:sha||undefined,branch:BRANCH});resolve(path)
+      }catch(err){reject(err)}
+    };reader.readAsDataURL(f)
+  })
+}
+async function saveItem(){
+  const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='儲存中...';
+  try{
+    let receiptPath=document.getElementById('fReceipt').value.trim();
+    if(document.getElementById('fFile').files[0]){toast('上傳收據中...');receiptPath=await uploadFile()}
+    const item={name:document.getElementById('fName').value.trim(),purchase_date:document.getElementById('fDate').value,warranty_months:parseInt(document.getElementById('fMonths').value)||12};
+    if(receiptPath)item.receipt=receiptPath;
+    if(!item.name||!item.purchase_date){alert('請填寫名稱和日期');return}
+    if(editIndex>=0)assets[editIndex]=item;else assets.push(item);
+    await commitAssets('Update home_assets.json');closeModal();renderTable();toast('已儲存！');
+  }catch(e){toast('錯誤：'+e.message)}finally{btn.disabled=false;btn.textContent='儲存'}
+}
+async function deleteItem(i){
+  if(!confirm(`確定要刪除「${assets[i].name}」？`))return;
+  assets.splice(i,1);
+  try{await commitAssets('Delete from home_assets.json');renderTable();toast('已刪除！')}catch(e){toast('錯誤：'+e.message)}
+}
+async function commitAssets(msg){
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(assets,null,4))));
+  const result=await apiPut(`contents/${FILE_PATH}`,{message:msg,content,sha:fileSha,branch:BRANCH});
+  fileSha=result.content.sha;
+}
+function renderPortfolio(){
+  const markets=['TW','US','HK','JP'];
+  const marketLabel={'TW':'🇹🇼 台股','US':'🇺🇸 美股','HK':'🇭🇰 港股','JP':'🇯🇵 日股'};
+  let html='';
+  markets.forEach(mkt=>{
+    const items=portfolio.map((s,i)=>({s,i})).filter(({s})=>s.market===mkt);
+    if(!items.length)return;
+    const totalCost=items.reduce((acc,{s})=>acc+s.shares*s.cost_price,0);
+    html+=`<h3 style="margin:20px 0 10px;font-size:.95rem;color:#4a5568">${marketLabel[mkt]}</h3><div style="overflow-x:auto"><table><thead><tr><th>名稱</th><th>代號</th><th>市場</th><th style="text-align:right">持股數</th><th style="text-align:right">成本價</th><th style="text-align:right">總成本</th><th>操作</th></tr></thead><tbody>`;
+    items.forEach(({s,i})=>{
+      const cost=(s.shares*s.cost_price).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      const costPrice=s.cost_price.toLocaleString(undefined,{minimumFractionDigits:3,maximumFractionDigits:3});
+      html+=`<tr><td><strong>${s.name}</strong></td><td style="font-family:monospace;color:#667eea">${s.ticker}</td><td><span class="market-badge market-${s.market}">${s.market}</span></td><td style="text-align:right">${s.shares.toLocaleString()}</td><td style="text-align:right">${costPrice}</td><td style="text-align:right;font-weight:600">${cost}</td><td><button class="btn btn-primary btn-sm" onclick="openEditStock(${i})">編輯</button> <button class="btn btn-danger btn-sm" onclick="deleteStock(${i})">刪除</button></td></tr>`;
+    });
+    html+=`</tbody><tfoot><tr><td colspan="5" style="text-align:right;font-weight:700;color:#4a5568;padding:10px 14px">小計成本</td><td style="text-align:right;font-weight:700;color:#2d3748;padding:10px 14px">${totalCost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td></td></tr></tfoot></table></div>`;
+  });
+  document.getElementById('portfolioArea').innerHTML=html||'<p style="text-align:center;color:#a0aec0;padding:20px">暫無持股資料</p>';
+}
+function openAddStock(){stockEditIndex=-1;document.getElementById('stockModalTitle').textContent='新增持股';document.getElementById('sName').value='';document.getElementById('sTicker').value='';document.getElementById('sShares').value='';document.getElementById('sCost').value='';document.getElementById('sMarket').value='TW';document.getElementById('stockModal').classList.add('active')}
+function openEditStock(i){stockEditIndex=i;const s=portfolio[i];document.getElementById('stockModalTitle').textContent='編輯持股';document.getElementById('sName').value=s.name;document.getElementById('sTicker').value=s.ticker;document.getElementById('sShares').value=s.shares;document.getElementById('sCost').value=s.cost_price;document.getElementById('sMarket').value=s.market;document.getElementById('stockModal').classList.add('active')}
+function closeStockModal(){document.getElementById('stockModal').classList.remove('active')}
+async function saveStock(){
+  const btn=document.getElementById('stockSaveBtn');btn.disabled=true;btn.textContent='儲存中...';
+  try{
+    const name=document.getElementById('sName').value.trim();
+    const ticker=document.getElementById('sTicker').value.trim();
+    const shares=parseInt(document.getElementById('sShares').value);
+    const cost_price=parseFloat(document.getElementById('sCost').value);
+    const market=document.getElementById('sMarket').value;
+    if(!name||!ticker||!shares||isNaN(cost_price)){alert('請填寫所有欄位');return}
+    const item={name,ticker,shares,cost_price,market};
+    if(stockEditIndex>=0)portfolio[stockEditIndex]=item;else portfolio.push(item);
+    await commitPortfolio(stockEditIndex>=0?'Update portfolio.json':'Add to portfolio.json');
+    closeStockModal();renderPortfolio();toast('已儲存！');
+  }catch(e){toast('錯誤：'+e.message)}finally{btn.disabled=false;btn.textContent='儲存'}
+}
+async function deleteStock(i){
+  if(!confirm(`確定要刪除「${portfolio[i].name}」？`))return;
+  portfolio.splice(i,1);
+  try{await commitPortfolio('Delete from portfolio.json');renderPortfolio();toast('已刪除！')}catch(e){toast('錯誤：'+e.message)}
+}
+async function commitPortfolio(msg){
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(portfolio,null,4))));
+  const result=await apiPut(`contents/${PORTFOLIO_PATH}`,{message:msg,content,sha:portfolioSha,branch:BRANCH});
+  portfolioSha=result.content.sha;
+}
+function showLb(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('active')}
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',3000)}
+</script>
+</body>
+</html>
