@@ -54,7 +54,7 @@ def get_stock_summary():
     gold_twd_per_mace = 0.0
 
     try:
-        data = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X", "GC=F"], period="5d", progress=False, timeout=15, threads=False)
+        data = yf.download(["USDTWD=X", "HKDTWD=X", "JPYTWD=X", "GC=F"], period="5d", progress=False, timeout=30, threads=False)
         if not data.empty:
             last_data = data['Close'].ffill().iloc[-1]
             if not math.isnan(last_data.get("USDTWD=X", float('nan'))): rates["US"] = float(last_data["USDTWD=X"])
@@ -75,8 +75,16 @@ def get_stock_summary():
     for item in portfolio_data:
         try:
             stock = yf.Ticker(item['ticker'])
-            hist = stock.history(period="5d")
-            current = hist['Close'].ffill().iloc[-1] if not hist.empty else item['cost_price']
+            hist = None
+            for attempt in range(3):
+                try:
+                    hist = stock.history(period="5d", timeout=30)
+                    if not hist.empty:
+                        break
+                except Exception:
+                    import time
+                    time.sleep(5)
+            current = hist['Close'].ffill().iloc[-1] if (hist is not None and not hist.empty) else item['cost_price']
 
             rate = rates.get(item['market'], 1.0)
             c_twd = item['shares'] * item['cost_price'] * rate
@@ -290,6 +298,13 @@ async function checkPwd(){{
 
     os.makedirs("docs", exist_ok=True)
     with open("docs/portfolio.html", "w", encoding="utf-8") as f:
+        f.write(html)
+
+    # 存一份到 Daily_Report 目錄，標上日期
+    os.makedirs("Daily_Report", exist_ok=True)
+    tw_tz = timezone(timedelta(hours=8))
+    report_date = datetime.now(tw_tz).strftime('%Y-%m-%d')
+    with open(f"Daily_Report/portfolio_{report_date}.html", "w", encoding="utf-8") as f:
         f.write(html)
 
     return message
