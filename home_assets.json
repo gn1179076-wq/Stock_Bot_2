@@ -66,35 +66,12 @@
         "name": "[訂閱] Claude",
         "purchase_date": "2026-04-16",
         "warranty_months": 12,
-        "fee": "194 US"
+        "receipt": "receipts/Claude.jpg"
     },
     {
         "name": "NANK南卡Runner 4",
         "purchase_date": "2026-04-06",
         "warranty_months": 12,
         "receipt": "receipts/NANK Runner 4.jpg"
-    },
-    {
-        "name": "[訂閱] Youtube",
-        "purchase_date": "2026-05-01",
-        "warranty_months": 1,
-        "fee": "600 NT"
-    },
-    {
-        "name": "[訂閱] Google One",
-        "purchase_date": "2026-05-02",
-        "warranty_months": 1,
-        "fee": "20 US"
-    },
-    {
-        "name": "[訂閱] Whoscall",
-        "purchase_date": "2025-11-22",
-        "warranty_months": 12,
-        "fee": "599 NT"
-    },
-    {
-        "name": "[耗材] Google Tag x 3",
-        "purchase_date": "2026-04-13",
-        "warranty_months": 12
     }
 ]
