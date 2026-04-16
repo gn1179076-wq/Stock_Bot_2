@@ -280,6 +280,12 @@ async function checkPwd(){{
     with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
+    # 存一份到 Daily_Report 目錄，標上日期
+    os.makedirs("Daily_Report", exist_ok=True)
+    report_date = today.strftime('%Y-%m-%d')
+    with open(f"Daily_Report/warranty_{report_date}.html", "w", encoding="utf-8") as f:
+        f.write(html)
+
     # 複製收據資料夾到 docs/ 讓 GitHub Pages 能讀取
     if os.path.isdir("receipts"):
         import shutil
