@@ -76,23 +76,40 @@
     <div class="card" id="portfolioArea"><p style="text-align:center;color:#a0aec0;padding:40px 0">請先輸入 GitHub Token 並點擊「載入」</p></div>
   </div>
 
+  <!-- 資產編輯彈窗 -->
   <div class="modal" id="editModal">
     <div class="modal-box">
       <h3 id="modalTitle">新增項目</h3>
-      <div class="form-group"><label>名稱</label><input type="text" id="fName" placeholder="例：iPhone 17 / [耗材] 濾網 / [訂閱] Claude"></div>
-      <div class="form-row">
-        <div class="form-group"><label>購買日期</label><input type="date" id="fDate"></div>
-        <div class="form-group"><label>保固月數</label><input type="number" id="fMonths" min="1" placeholder="12"></div>
-      </div>
       <div class="form-group">
-        <label>收據圖片（選填）</label>
-        <div class="upload-area" onclick="document.getElementById('fFile').click()">
-          <div>點擊上傳圖片</div>
-          <div id="uploadPreview" style="margin-top:8px;font-size:.82rem;color:#667eea"></div>
-          <input type="file" id="fFile" accept="image/*,.pdf" onchange="previewFile()">
-        </div>
-        <input type="text" id="fReceipt" placeholder="receipts/xxx.jpg" style="margin-top:6px;width:100%;padding:8px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem;outline:none">
+        <label>名稱</label>
+        <input type="text" id="fName" placeholder="例：iPhone 17 / [耗材] 濾網 / [訂閱] Claude" oninput="toggleAssetFields()">
       </div>
+      <div class="form-row">
+        <div class="form-group"><label>起始/購買日期</label><input type="date" id="fDate"></div>
+        <div class="form-group"><label>週期/保固月數</label><input type="number" id="fMonths" min="1" placeholder="12"></div>
+      </div>
+      
+      <!-- 費用欄位 (訂閱/耗材顯示) -->
+      <div id="feeFields" style="display:none">
+        <div class="form-group">
+          <label>費用</label>
+          <input type="text" id="fFee" placeholder="例：NT$ 660 / 月">
+        </div>
+      </div>
+
+      <!-- 收據欄位 (硬體顯示) -->
+      <div id="receiptFields">
+        <div class="form-group">
+          <label>收據圖片（選填）</label>
+          <div class="upload-area" onclick="document.getElementById('fFile').click()">
+            <div>點擊上傳圖片</div>
+            <div id="uploadPreview" style="margin-top:8px;font-size:.82rem;color:#667eea"></div>
+            <input type="file" id="fFile" accept="image/*,.pdf" onchange="previewFile()">
+          </div>
+          <input type="text" id="fReceipt" placeholder="receipts/xxx.jpg" style="margin-top:6px;width:100%;padding:8px;border:2px solid #e2e8f0;border-radius:8px;font-size:.88rem;outline:none">
+        </div>
+      </div>
+
       <div class="modal-actions">
         <button class="btn" onclick="closeModal()" style="background:#e2e8f0;color:#4a5568">取消</button>
         <button class="btn btn-primary" id="saveBtn" onclick="saveItem()">儲存</button>
@@ -138,10 +155,12 @@ const FILE_PATH="home_assets.json",PORTFOLIO_PATH="portfolio.json";
 const BASE_URL="https://gn1179076-wq.github.io/Stock_Bot_2";
 let assets=[],fileSha="",editIndex=-1;
 let portfolio=[],portfolioSha="",stockEditIndex=-1;
+
 function token(){return document.getElementById('ghToken').value.trim()}
 async function apiGet(p){const r=await fetch(`https://api.github.com/repos/${REPO}/${p}`,{headers:{Authorization:`Bearer ${token()}`,Accept:'application/vnd.github+json'}});if(!r.ok)throw new Error(r.status);return r.json()}
 async function apiPut(p,b){const r=await fetch(`https://api.github.com/repos/${REPO}/${p}`,{method:'PUT',headers:{Authorization:`Bearer ${token()}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(b)});if(!r.ok){const e=await r.json();throw new Error(e.message||r.status)}return r.json()}
 function switchTab(tab){document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['assets','portfolio'][i]===tab));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active')}
+
 async function loadAll(){
   const st=document.getElementById('tokenStatus');st.innerHTML='';
   try{
@@ -153,6 +172,15 @@ async function loadAll(){
     renderTable();renderPortfolio();
   }catch(e){st.innerHTML=`<span class="status err">失敗: ${e.message}</span>`}
 }
+
+// 根據名稱動態切換欄位邏輯
+function toggleAssetFields() {
+  const name = document.getElementById('fName').value;
+  const isFeeType = name.includes('[耗材]') || name.includes('[訂閱]');
+  document.getElementById('receiptFields').style.display = isFeeType ? 'none' : 'block';
+  document.getElementById('feeFields').style.display = isFeeType ? 'block' : 'none';
+}
+
 function renderTable(){
   const cats=[
     {label:'📦 硬體設備保固',filter:a=>!a.name.includes('[耗材]')&&!a.name.includes('[訂閱]')},
@@ -163,19 +191,57 @@ function renderTable(){
   cats.forEach(cat=>{
     const items=assets.map((a,i)=>({a,i})).filter(({a})=>cat.filter(a));
     if(!items.length)return;
-    html+=`<h3 style="margin:20px 0 10px;font-size:.95rem;color:#4a5568">${cat.label}</h3><div style="overflow-x:auto"><table><thead><tr><th>名稱</th><th>日期</th><th>月數</th><th>收據</th><th>操作</th></tr></thead><tbody>`;
+
+    const isFeeTab = cat.label.includes('耗材') || cat.label.includes('訂閱');
+    html+=`<h3 style="margin:20px 0 10px;font-size:.95rem;color:#4a5568">${cat.label}</h3><div style="overflow-x:auto"><table><thead><tr><th>名稱</th><th>日期</th><th>月數</th><th>${isFeeTab?'費用':'收據'}</th><th>操作</th></tr></thead><tbody>`;
+    
     items.forEach(({a,i})=>{
-      const rec=a.receipt?`<img src="${BASE_URL}/${a.receipt}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showLb('${BASE_URL}/${a.receipt}')" onerror="this.style.display='none'">`:'—';
-      html+=`<tr><td><strong>${a.name}</strong></td><td>${a.purchase_date}</td><td style="text-align:center">${a.warranty_months}</td><td>${rec}</td><td><button class="btn btn-primary btn-sm" onclick="openEdit(${i})">編輯</button> <button class="btn btn-danger btn-sm" onclick="deleteItem(${i})">刪除</button></td></tr>`;
+      let displayCol = '';
+      if(isFeeTab) {
+        displayCol = `<span style="color:#667eea;font-weight:600">${a.fee || '—'}</span>`;
+      } else {
+        displayCol = a.receipt?`<img src="${BASE_URL}/${a.receipt}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showLb('${BASE_URL}/${a.receipt}')" onerror="this.style.display='none'">`:'—';
+      }
+      
+      html+=`<tr><td><strong>${a.name}</strong></td><td>${a.purchase_date}</td><td style="text-align:center">${a.warranty_months}</td><td>${displayCol}</td><td><button class="btn btn-primary btn-sm" onclick="openEdit(${i})">編輯</button> <button class="btn btn-danger btn-sm" onclick="deleteItem(${i})">刪除</button></td></tr>`;
     });
     html+='</tbody></table></div>';
   });
   document.getElementById('tableArea').innerHTML=html||'<p style="text-align:center;color:#a0aec0;padding:20px">暫無資料</p>';
 }
-function openAdd(){editIndex=-1;document.getElementById('modalTitle').textContent='新增項目';document.getElementById('fName').value='';document.getElementById('fDate').value=new Date().toISOString().slice(0,10);document.getElementById('fMonths').value='12';document.getElementById('fReceipt').value='';document.getElementById('fFile').value='';document.getElementById('uploadPreview').textContent='';document.getElementById('editModal').classList.add('active')}
-function openEdit(i){editIndex=i;const a=assets[i];document.getElementById('modalTitle').textContent='編輯項目';document.getElementById('fName').value=a.name;document.getElementById('fDate').value=a.purchase_date;document.getElementById('fMonths').value=a.warranty_months;document.getElementById('fReceipt').value=a.receipt||'';document.getElementById('fFile').value='';document.getElementById('uploadPreview').textContent='';document.getElementById('editModal').classList.add('active')}
+
+function openAdd(){
+  editIndex=-1;
+  document.getElementById('modalTitle').textContent='新增項目';
+  document.getElementById('fName').value='';
+  document.getElementById('fDate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('fMonths').value='12';
+  document.getElementById('fReceipt').value='';
+  document.getElementById('fFee').value='';
+  document.getElementById('fFile').value='';
+  document.getElementById('uploadPreview').textContent='';
+  toggleAssetFields();
+  document.getElementById('editModal').classList.add('active');
+}
+
+function openEdit(i){
+  editIndex=i;
+  const a=assets[i];
+  document.getElementById('modalTitle').textContent='編輯項目';
+  document.getElementById('fName').value=a.name;
+  document.getElementById('fDate').value=a.purchase_date;
+  document.getElementById('fMonths').value=a.warranty_months;
+  document.getElementById('fReceipt').value=a.receipt||'';
+  document.getElementById('fFee').value=a.fee||'';
+  document.getElementById('fFile').value='';
+  document.getElementById('uploadPreview').textContent='';
+  toggleAssetFields();
+  document.getElementById('editModal').classList.add('active');
+}
+
 function closeModal(){document.getElementById('editModal').classList.remove('active')}
 function previewFile(){const f=document.getElementById('fFile').files[0];if(f){document.getElementById('uploadPreview').textContent='已選：'+f.name;document.getElementById('fReceipt').value='receipts/'+f.name}}
+
 async function uploadFile(){
   const f=document.getElementById('fFile').files[0];if(!f)return null;
   return new Promise((resolve,reject)=>{
@@ -188,28 +254,50 @@ async function uploadFile(){
     };reader.readAsDataURL(f)
   })
 }
+
 async function saveItem(){
   const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='儲存中...';
   try{
-    let receiptPath=document.getElementById('fReceipt').value.trim();
-    if(document.getElementById('fFile').files[0]){toast('上傳收據中...');receiptPath=await uploadFile()}
-    const item={name:document.getElementById('fName').value.trim(),purchase_date:document.getElementById('fDate').value,warranty_months:parseInt(document.getElementById('fMonths').value)||12};
-    if(receiptPath)item.receipt=receiptPath;
+    const name = document.getElementById('fName').value.trim();
+    const isFeeType = name.includes('[耗材]') || name.includes('[訂閱]');
+    
+    let item={
+      name: name,
+      purchase_date: document.getElementById('fDate').value,
+      warranty_months: parseInt(document.getElementById('fMonths').value)||12
+    };
+
+    if (isFeeType) {
+      item.fee = document.getElementById('fFee').value.trim();
+      // 清除可能殘留的收據資訊
+      delete item.receipt;
+    } else {
+      let receiptPath=document.getElementById('fReceipt').value.trim();
+      if(document.getElementById('fFile').files[0]){toast('上傳收據中...');receiptPath=await uploadFile()}
+      if(receiptPath) item.receipt=receiptPath;
+      // 清除可能殘留的費用資訊
+      delete item.fee;
+    }
+
     if(!item.name||!item.purchase_date){alert('請填寫名稱和日期');return}
     if(editIndex>=0)assets[editIndex]=item;else assets.push(item);
     await commitAssets('Update home_assets.json');closeModal();renderTable();toast('已儲存！');
   }catch(e){toast('錯誤：'+e.message)}finally{btn.disabled=false;btn.textContent='儲存'}
 }
+
 async function deleteItem(i){
   if(!confirm(`確定要刪除「${assets[i].name}」？`))return;
   assets.splice(i,1);
   try{await commitAssets('Delete from home_assets.json');renderTable();toast('已刪除！')}catch(e){toast('錯誤：'+e.message)}
 }
+
 async function commitAssets(msg){
   const content=btoa(unescape(encodeURIComponent(JSON.stringify(assets,null,4))));
   const result=await apiPut(`contents/${FILE_PATH}`,{message:msg,content,sha:fileSha,branch:BRANCH});
   fileSha=result.content.sha;
 }
+
+// 股票組合函數 (維持原樣)
 function renderPortfolio(){
   const markets=['TW','US','HK','JP'];
   const marketLabel={'TW':'🇹🇼 台股','US':'🇺🇸 美股','HK':'🇭🇰 港股','JP':'🇯🇵 日股'};
