@@ -40,33 +40,38 @@
     {
         "name": "[耗材] 小米空氣清淨機X2 濾網",
         "purchase_date": "2026-03-01",
-        "warranty_months": 6
+        "warranty_months": 6,
+        "fee": ""
     },
     {
         "name": "[耗材] SHARP空氣清淨機濾網",
         "purchase_date": "2026-03-01",
-        "warranty_months": 12
+        "warranty_months": 12,
+        "fee": ""
     },
     {
         "name": "[耗材] blueair 濾網",
         "purchase_date": "2026-03-01",
-        "warranty_months": 12
+        "warranty_months": 12,
+        "fee": ""
     },
     {
         "name": "[耗材] Samsung Tag x3 電池",
         "purchase_date": "2026-04-13",
-        "warranty_months": 12
+        "warranty_months": 12,
+        "fee": ""
     },
     {
         "name": "[耗材] 三樓瓦斯",
         "purchase_date": "2026-04-14",
-        "warranty_months": 3
+        "warranty_months": 3,
+        "fee": ""
     },
     {
         "name": "[訂閱] Claude",
         "purchase_date": "2026-04-16",
         "warranty_months": 12,
-        "receipt": "receipts/Claude.jpg"
+        "fee": "NT$ 660 / 月"
     },
     {
         "name": "NANK南卡Runner 4",
@@ -77,21 +82,25 @@
     {
         "name": "[耗材] Google Tag x3",
         "purchase_date": "2026-04-13",
-        "warranty_months": 12
+        "warranty_months": 12,
+        "fee": ""
     },
     {
         "name": "[訂閱] Goolge One",
         "purchase_date": "2026-05-02",
-        "warranty_months": 1
+        "warranty_months": 1,
+        "fee": ""
     },
     {
         "name": "[訂閱] Whoscall",
         "purchase_date": "2025-11-22",
-        "warranty_months": 12
+        "warranty_months": 12,
+        "fee": ""
     },
     {
         "name": "[訂閱] Youtube",
         "purchase_date": "2026-05-01",
-        "warranty_months": 1
+        "warranty_months": 1,
+        "fee": ""
     }
 ]
