@@ -88,5 +88,10 @@
         "name": "[訂閱] Whoscall",
         "purchase_date": "2025-11-22",
         "warranty_months": 12
+    },
+    {
+        "name": "[訂閱] Youtube",
+        "purchase_date": "2026-05-01",
+        "warranty_months": 1
     }
 ]
