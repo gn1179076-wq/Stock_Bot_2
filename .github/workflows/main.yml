@@ -37,10 +37,8 @@ jobs:
           retry_wait_seconds: 60
           command: python Main.py
         env:
-          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
-          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
-          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }} # 補上這一行
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           
       # 執行「保固追蹤」 (warranty.py) → 產生 docs/index.html
       - name: 執行「保固追蹤」 (warranty.py)
