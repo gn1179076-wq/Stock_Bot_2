@@ -80,7 +80,14 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
                 gold_twd_per_mace = (gold_usd / 31.1035 * 3.75) * rates["US"]
     except Exception as e:
         print(f"匯率或金價抓取失敗: {e}")
-
+        
+    # 匯率健檢：API 若回傳 0 / NaN / None 時回補預設值，避免後續 1/rates['JP'] 等除法爆炸
+    DEFAULT_RATES = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
+    for k, v in DEFAULT_RATES.items():
+        r = rates.get(k)
+        if r is None or (isinstance(r, float) and (r == 0 or math.isnan(r))):
+            rates[k] = v
+            
     total_cost, total_value = 0.0, 0.0
     loss_details = ""
     html_rows = ""
