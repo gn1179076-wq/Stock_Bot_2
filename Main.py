@@ -58,7 +58,7 @@ def push_tg_message(text):
 # ==========================================
 # 3. 抓取資料 & 產生報表
 # ==========================================
-def get_stock_summary(report_url_with_cache):
+def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必須增加 git_branch 參數
     print("正在分析資產狀況與黃金價格...")
     portfolio_data = load_portfolio()
 
@@ -136,7 +136,7 @@ def get_stock_summary(report_url_with_cache):
     gold_display = f"${int(gold_twd_per_mace):,}" if gold_twd_per_mace > 0 else "暫無資料"
 
     tg_msg = (
-        f"<b>📊 Fiona 持股資產日報</b>\n"
+        f"<b>📊 Fiona 持股資產日報 ({git_branch})</b>\n" # 👈 在這裡使用 git_branch
         f"📅 {current_time}\n"
         f"--------------------------\n"
         f"🟡 國際金價: <code>${gold_usd:.1f}</code>\n"
@@ -149,7 +149,7 @@ def get_stock_summary(report_url_with_cache):
         f"--------------------------\n"
         f"{'🟢 <b>持股虧損清單：</b>' if loss_details else '🎉 全部持股皆為正報酬！'}\n"
         f"{loss_details}\n"
-        f"📋 <a href='{report_url_with_cache}'>查看完整投資組合儀表板</a>"
+        f"📋 <a href='{report_url}'>查看完整投資組合儀表板</a>" # 👈 將這裡的 report_url_with_cache 改為 report_url
     )
 
     generate_html_report(html_rows, gold_usd, gold_display, rates, total_cost, total_value, profit_total, roi_total, current_time)
@@ -273,6 +273,7 @@ document.getElementById('pwd-input').addEventListener('keydown', e => { if (e.ke
 # ==========================================
 if __name__ == "__main__":
     print("🚀 啟動資產分析任務...")
+    git_branch = os.getenv("GITHUB_REF_NAME", "unknown_branch") 
     
     # 安全檢查：確保密碼已設定
     if not REPORT_PWD:
@@ -281,7 +282,8 @@ if __name__ == "__main__":
 
     tw_tz = timezone(timedelta(hours=8))
     cache_bust = datetime.now(tw_tz).strftime('%Y%m%d%H%M')
-    final_url = f"{REPORT_BASE_URL}?t={cache_bust}"
     
-    msg = get_stock_summary(final_url)
+    # 👈 修改這行：將 git_branch 傳入 get_stock_summary
+    final_url = f"{REPORT_BASE_URL}?t={cache_bust}"
+    msg = get_stock_summary(final_url, git_branch) 
     push_tg_message(msg)
