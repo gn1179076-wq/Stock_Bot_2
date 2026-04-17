@@ -20,7 +20,7 @@ jobs:
       - name: 檢查程式碼 (0417_A02)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }} # 👈 將這裡改成這個，它會自動抓取當前觸發的分支名稱
+          ref: ${{ github.ref_name }} # 👈 確保這裡是 github.ref_name
 
       - name: 設定 Python 環境
         uses: actions/setup-python@v5
