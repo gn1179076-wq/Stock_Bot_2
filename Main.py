@@ -273,6 +273,7 @@ document.getElementById('pwd-input').addEventListener('keydown', e => { if (e.ke
 # ==========================================
 if __name__ == "__main__":
     print("🚀 啟動資產分析任務...")
+    git_branch = os.getenv("GITHUB_REF_NAME", "unknown_branch") 
     
     # 安全檢查：確保密碼已設定
     if not REPORT_PWD:
@@ -281,7 +282,8 @@ if __name__ == "__main__":
 
     tw_tz = timezone(timedelta(hours=8))
     cache_bust = datetime.now(tw_tz).strftime('%Y%m%d%H%M')
-    final_url = f"{REPORT_BASE_URL}?t={cache_bust}"
     
-    msg = get_stock_summary(final_url)
+    # 👈 修改這行：將 git_branch 傳入 get_stock_summary
+    final_url = f"{REPORT_BASE_URL}?t={cache_bust}"
+    msg = get_stock_summary(final_url, git_branch) 
     push_tg_message(msg)
