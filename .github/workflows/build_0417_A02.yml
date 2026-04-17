@@ -33,7 +33,9 @@ jobs:
       # 👈 新增：確保 Log 存放的資料夾存在
       - name: 準備 Log 資料夾
         run: mkdir -p Daily_Report
-
+        echo "GITHUB_REF_NAME: ${{ github.ref_name }}"
+        echo "GH_REF_NAME_ENV: $GITHUB_REF_NAME" # 檢查環境變數本身
+        
       # 執行「資產日報」 (Main.py)
       - name: 執行「資產日報」 (Main.py)
         uses: nick-fields/retry@v3
