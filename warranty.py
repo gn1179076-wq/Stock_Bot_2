@@ -292,12 +292,15 @@ document.getElementById('pwdInput').addEventListener('keydown', e => { if(e.key=
     os.makedirs("docs", exist_ok=True)
     with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(final_html)
-    
+    # 👇 新增這行印出提示
+    print("✅ 主要報表已更新：docs/index.html") 
     os.makedirs("Daily_Report", exist_ok=True)
     today_str = today.strftime('%Y-%m-%d')
     with open(f"Daily_Report/warranty_{today_str}.html", "w", encoding="utf-8") as f:
         f.write(final_html)
-
+    # 👇 新增這行印出提示
+    print(f"✅ 歷史備份已存檔：Daily_Report/warranty_{today_str}.html")
+    
     # 處理 receipts 目錄
     if os.path.isdir("receipts"):
         import shutil
