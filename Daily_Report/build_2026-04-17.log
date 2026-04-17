@@ -8,3 +8,14 @@
 ✅ 歷史備份已存檔：Daily_Report/warranty_2026-04-17.html
 ✅ Telegram 訊息發送成功！
 ℹ️ 沒有耗材在一週內到期，略過 LINE 發送。
+🚀 啟動資產分析任務...
+Traceback (most recent call last):
+  File "/home/runner/work/Stock_Bot_2/Stock_Bot_2/Main.py", line 288, in <module>
+    msg = get_stock_summary(final_url, git_branch) 
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: get_stock_summary() takes 1 positional argument but 2 were given
+🚀 啟動資產檢查任務 (支援 TG & LINE Bot)...
+✅ 主要報表已更新：docs/index.html
+✅ 歷史備份已存檔：Daily_Report/warranty_2026-04-17.html
+✅ Telegram 訊息發送成功！
+ℹ️ 沒有耗材在一週內到期，略過 LINE 發送。
