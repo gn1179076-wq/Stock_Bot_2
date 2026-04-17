@@ -58,7 +58,7 @@ def push_tg_message(text):
 # ==========================================
 # 3. 抓取資料 & 產生報表
 # ==========================================
-def get_stock_summary(report_url, git_branch="unknown_branch"):
+def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必須增加 git_branch 參數
     print("正在分析資產狀況與黃金價格...")
     portfolio_data = load_portfolio()
 
@@ -136,7 +136,7 @@ def get_stock_summary(report_url, git_branch="unknown_branch"):
     gold_display = f"${int(gold_twd_per_mace):,}" if gold_twd_per_mace > 0 else "暫無資料"
 
     tg_msg = (
-        f"<b>📊 Fiona 持股資產日報 ({git_branch})</b>\n" # 👈 在這裡加上 ({git_branch})
+        f"<b>📊 Fiona 持股資產日報 ({git_branch})</b>\n" # 👈 在這裡使用 git_branch
         f"📅 {current_time}\n"
         f"--------------------------\n"
         f"🟡 國際金價: <code>${gold_usd:.1f}</code>\n"
