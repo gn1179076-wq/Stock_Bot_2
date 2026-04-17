@@ -1,0 +1,101 @@
+name: Vic_Daily_Report_0417_A02
+
+on:
+  schedule:
+    - cron: '17 9 * * *' # 每天下午 5:17 執行
+  workflow_dispatch:      # 支援 GitHub 網頁手動點擊執行
+  issues:                # 支援透過開啟 Issue 觸發
+    types: [opened]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  issues: write           # 允許 GitHub Action 關閉 Issue
+
+jobs:
+  build:
+    # 邏輯判斷：如果是 Issue 觸發，標題必須是 "RUN_BUILD" 才會執行
+    # 如果是定時執行或手動執行，則直接通過
+    if: |
+      github.event_name != 'issues' ||
+      (github.event_name == 'issues' && github.event.issue.title == 'RUN_BUILD')
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 檢查程式碼 (0417_A02)
+        uses: actions/checkout@v4
+        with:
+          ref: 0417_A02
+
+      - name: 設定 Python 環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安裝必要套件
+        run: pip install -r requirements.txt
+
+      # 執行「資產日報」 (Main.py)
+      - name: 執行「資產日報」 (Main.py)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 60
+          command: python Main.py
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          REPORT_PWD: ${{ secrets.REPORT_PWD }}
+
+      # 執行「保固追蹤」 (warranty.py) → 產生 docs/index.html
+      - name: 執行「保固追蹤」 (warranty.py)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 60
+          command: python warranty.py
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          REPORT_PWD: ${{ secrets.REPORT_PWD }}
+
+      # 部署 HTML 到 GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      # 將每日報表存檔到 Daily_Report 目錄
+      - name: 存檔每日報表到 Daily_Report
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Daily_Report/
+          if git diff --staged --quiet; then
+            echo "沒有新報表，跳過"
+          else
+            git commit -m "存檔每日報表 $(date +%Y-%m-%d) [skip ci]"
+            git push
+          fi
+
+      # --- 結尾動作：如果是 Issue 觸發的，自動關閉它 ---
+      - name: 自動關閉觸發指令的 Issue
+        if: github.event_name == 'issues'
+        run: gh issue close ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
