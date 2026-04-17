@@ -30,8 +30,6 @@ jobs:
     steps:
       - name: 檢查程式碼
         uses: actions/checkout@v4
-        with:
-          ref: 0417_A02
 
       - name: 設定 Python 環境
         uses: actions/setup-python@v5
