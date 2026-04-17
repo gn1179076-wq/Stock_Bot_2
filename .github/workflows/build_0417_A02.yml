@@ -7,10 +7,9 @@ permissions:
   contents: write
   pages: write
   id-token: write
-  # (已刪除 issues: write，因為用不到了)
 
 jobs:
-  build:                  # ⚠️ 這裡必須補上一個 Job 名稱 (例如 build)
+  build:
     runs-on: ubuntu-latest
 
     environment:
@@ -30,6 +29,10 @@ jobs:
 
       - name: 安裝必要套件
         run: pip install -r requirements.txt
+        
+      # 👈 新增：確保 Log 存放的資料夾存在
+      - name: 準備 Log 資料夾
+        run: mkdir -p Daily_Report
 
       # 執行「資產日報」 (Main.py)
       - name: 執行「資產日報」 (Main.py)
@@ -38,7 +41,8 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
-          command: python Main.py
+          # 👈 修改：使用 tee -a 同時印出並將 log 寫入檔案 (加上日期)
+          command: bash -c "python Main.py 2>&1 | tee -a Daily_Report/build_$(date +'%Y-%m-%d').log"
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
@@ -51,16 +55,16 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
-          command: python warranty.py
+          # 👈 修改：一樣使用 tee -a，因為是 -a (append)，所以兩支程式的 log 會接續存在同一個檔案裡
+          command: bash -c "python warranty.py 2>&1 | tee -a Daily_Report/build_$(date +'%Y-%m-%d').log"
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           REPORT_PWD: ${{ secrets.REPORT_PWD }}
-          # 這裡要改成這三行：
           LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
           LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-          
+
       # 部署 HTML 到 GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -74,17 +78,16 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      # 將每日報表存檔到 Daily_Report 目錄
-      - name: 存檔每日報表到 Daily_Report
+      # 將每日報表與 Log 存檔到 Daily_Report 目錄
+      - name: 存檔每日報表與 Log 到 Git
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add Daily_Report/
           if git diff --staged --quiet; then
-            echo "沒有新報表，跳過"
+            echo "沒有新報表與紀錄，跳過"
           else
-            git commit -m "存檔每日報表 $(date +%Y-%m-%d) [skip ci]"
+            # 👈 修改：把 Commit 訊息加上 "與執行紀錄" 讓您更清楚
+            git commit -m "存檔每日報表與執行紀錄 $(date +%Y-%m-%d) [skip ci]"
             git push
           fi
-
-      # (已刪除自動關閉 Issue 的步驟，因為您改成純手動，根本不會有 Issue 產生)
