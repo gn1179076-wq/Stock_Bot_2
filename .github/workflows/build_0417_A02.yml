@@ -44,8 +44,7 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           # 👈 修改：使用 tee -a 同時印出並將 log 寫入檔案 (加上日期)
-          command: bash -c "python Main.py 2>&1 | tee -a Daily_Report/build_$(date +'%Y-%m-%d').log"
-        env:
+          command: bash -c "python Main.py 2>&1 | tee Daily_Report/build_$(date +'%Y-%m-%d')_run${{ github.run_number }}-${{ github.run_attempt }}_main.log"        env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           REPORT_PWD: ${{ secrets.REPORT_PWD }}
@@ -58,8 +57,7 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           # 👈 修改：一樣使用 tee -a，因為是 -a (append)，所以兩支程式的 log 會接續存在同一個檔案裡
-          command: bash -c "python warranty.py 2>&1 | tee -a Daily_Report/build_$(date +'%Y-%m-%d').log"
-        env:
+          command: bash -c "python warranty.py 2>&1 | tee -a Daily_Report/build_$(date +'%Y-%m-%d').log"        env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           REPORT_PWD: ${{ secrets.REPORT_PWD }}
