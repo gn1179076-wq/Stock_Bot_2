@@ -142,6 +142,7 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
         f"🟡 國際金價: <code>${gold_usd:.1f}</code>\n"
         f"💰 台灣金價: <code>{gold_display}</code> (錢)\n"
         f"💱 美元匯率: <code>{rates['US']:.2f}</code>\n"
+        f"💴 日圓匯率(100): <code>{rates['JP']*100:.2f}</code>\n"
         f"--------------------------\n"
         f"💰 總投入: <code>${int(total_cost):,}</code>\n"
         f"📈 總現值: <code>${int(total_value):,}</code>\n"
