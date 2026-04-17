@@ -20,7 +20,7 @@ jobs:
       - name: 檢查程式碼 (0417_A02)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }} # 👈 確保這裡是 github.ref_name
+          ref: ${{ github.ref_name }}
 
       - name: 設定 Python 環境
         uses: actions/setup-python@v5
@@ -29,34 +29,35 @@ jobs:
 
       - name: 安裝必要套件
         run: pip install -r requirements.txt
-        
-      - name: 準備 Log 資料夾並檢查環境變數 # 👈 修改步驟名稱，更清楚
-        run: | # 👈 注意這裡的管道符號 `|`，表示接下來是多行字串
+
+      - name: 準備 Log 資料夾並檢查環境變數
+        run: |
           mkdir -p Daily_Report
           echo "GITHUB_REF_NAME (from context): ${{ github.ref_name }}"
-          echo "GITHUB_REF_NAME (from environment): $GITHUB_REF_NAME" # 檢查環境變數本身
-        
-      # 執行「資產日報」 (Main.py)
-      - name: 執行「資產日報」 (Main.py)
+          echo "GITHUB_REF_NAME (from environment): $GITHUB_REF_NAME"
+
+      # 執行「資產日報」(Main.py)
+      - name: 執行「資產日報」(Main.py)
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
-          # 👈 修改：使用 tee -a 同時印出並將 log 寫入檔案 (加上日期)
-          command: bash -c "python Main.py 2>&1 | tee Daily_Report/build_$(date +'%Y-%m-%d')_run${{ github.run_number }}-${{ github.run_attempt }}_main.log"          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          command: bash -c "python Main.py 2>&1 | tee Daily_Report/build_$(date +'%Y-%m-%d')_run${{ github.run_number }}-${{ github.run_attempt }}_main.log"
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           REPORT_PWD: ${{ secrets.REPORT_PWD }}
 
-      # 執行「保固追蹤」 (warranty.py) → 產生 docs/index.html
-      - name: 執行「保固追蹤」 (warranty.py)
+      # 執行「保固追蹤」(warranty.py) → 產生 docs/index.html
+      - name: 執行「保固追蹤」(warranty.py)
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
-          # 👈 修改：一樣使用 tee -a，因為是 -a (append)，所以兩支程式的 log 會接續存在同一個檔案裡
-          command: bash -c "python warranty.py 2>&1 | tee -a Daily_Report/build_$(date +'%Y-%m-%d').log"        env:
+          command: bash -c "python warranty.py 2>&1 | tee Daily_Report/build_$(date +'%Y-%m-%d')_run${{ github.run_number }}-${{ github.run_attempt }}_warranty.log"
+        env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           REPORT_PWD: ${{ secrets.REPORT_PWD }}
@@ -86,7 +87,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "沒有新報表與紀錄，跳過"
           else
-            # 👈 修改：把 Commit 訊息加上 "與執行紀錄" 讓您更清楚
             git commit -m "存檔每日報表與執行紀錄 $(date +%Y-%m-%d) [skip ci]"
             git push
           fi
