@@ -56,7 +56,11 @@ jobs:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           REPORT_PWD: ${{ secrets.REPORT_PWD }}
-
+          # 這裡要改成這三行：
+          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
+          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          
       # 部署 HTML 到 GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v4
