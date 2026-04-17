@@ -1,26 +1,16 @@
 name: Vic_Daily_Report_0417_A02
 
 on:
-  schedule:
-    - cron: '17 9 * * *' # 每天下午 5:17 執行
   workflow_dispatch:      # 支援 GitHub 網頁手動點擊執行
-  issues:                # 支援透過開啟 Issue 觸發
-    types: [opened]
 
 permissions:
   contents: write
   pages: write
   id-token: write
-  issues: write           # 允許 GitHub Action 關閉 Issue
+  # (已刪除 issues: write，因為用不到了)
 
 jobs:
-  build:
-    # 邏輯判斷：如果是 Issue 觸發，標題必須是 "RUN_BUILD" 才會執行
-    # 如果是定時執行或手動執行，則直接通過
-    if: |
-      github.event_name != 'issues' ||
-      (github.event_name == 'issues' && github.event.issue.title == 'RUN_BUILD')
-
+  build:                  # ⚠️ 這裡必須補上一個 Job 名稱 (例如 build)
     runs-on: ubuntu-latest
 
     environment:
@@ -93,9 +83,4 @@ jobs:
             git push
           fi
 
-      # --- 結尾動作：如果是 Issue 觸發的，自動關閉它 ---
-      - name: 自動關閉觸發指令的 Issue
-        if: github.event_name == 'issues'
-        run: gh issue close ${{ github.event.issue.number }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # (已刪除自動關閉 Issue 的步驟，因為您改成純手動，根本不會有 Issue 產生)
