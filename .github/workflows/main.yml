@@ -46,7 +46,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
-          command: python Main.py
+          command: bash -c "python Main.py 2>&1 | tee Daily_Report/build_$(date +'%Y-%m-%d')_run${{ github.run_number }}-${{ github.run_attempt }}_main.log"
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
@@ -59,11 +59,14 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
-          command: python warranty.py
+          command: bash -c "python warranty.py 2>&1 | tee Daily_Report/build_$(date +'%Y-%m-%d')_run${{ github.run_number }}-${{ github.run_attempt }}_warranty.log"
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           REPORT_PWD: ${{ secrets.REPORT_PWD }}
+          LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
+          LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
 
       # 部署 HTML 到 GitHub Pages
       - name: Setup Pages
