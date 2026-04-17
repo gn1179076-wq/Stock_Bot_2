@@ -315,11 +315,16 @@ document.getElementById('pwdInput').addEventListener('keydown', e => { if(e.key=
 # ==========================================
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務 (支援 TG & LINE Bot)...")
+    # 獲取當前 Git 分支名稱
+    git_branch = os.getenv("GITHUB_REF_NAME", "unknown_branch") 
+    
     soon_l, expired_l, d_s, line_alerts = process_data()
     
     if d_s:
         # ======= 1. 原本的 Telegram 處理邏輯 =======
-        parts =[f"<b>🏠 Fiona 家務提醒 {d_s}</b>"]
+        # 在標題後面加上分支名稱
+        parts =[f"<b>🏠 Fiona 家務提醒 {d_s} ({git_branch})</b>"] 
+        
         if expired_l or soon_l:
             if expired_l:
                 parts.append("\n⛔ <b>已逾期 / 需處理：</b>")
