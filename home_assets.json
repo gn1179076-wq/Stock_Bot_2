@@ -102,5 +102,11 @@
         "purchase_date": "2026-05-01",
         "warranty_months": 1,
         "fee": "630 N.T"
+    },
+    {
+        "name": "[訂閱] Netflix",
+        "purchase_date": "2026-04-15",
+        "warranty_months": 1,
+        "fee": "460 N.T"
     }
 ]
