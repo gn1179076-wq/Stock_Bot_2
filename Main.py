@@ -11,10 +11,11 @@ from datetime import datetime, timedelta, timezone
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # ==========================================
-# 1. 安全設定區
+# 1. 安全設定區 (從環境變數讀取)
 # ==========================================
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID")
+REPORT_PWD = os.getenv("REPORT_PWD")  # <--- 報表解鎖密碼
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
 PORTFOLIO_FILE = "portfolio.json"
 
@@ -155,7 +156,6 @@ def get_stock_summary(report_url_with_cache):
     return tg_msg
 
 def generate_html_report(rows, g_usd, g_twd, rates, t_cost, t_value, p_total, r_total, c_time):
-    # 這裡的內部內容使用 f-string 沒問題，因為結構簡單
     profit_color = "text-green" if p_total >= 0 else "text-red"
     report_inner = f"""
     <div class="header"><h1>📊 Fiona 資產日報</h1><div class="time">{c_time}</div></div>
@@ -174,20 +174,18 @@ def generate_html_report(rows, g_usd, g_twd, rates, t_cost, t_value, p_total, r_
         <tbody>{rows}</tbody></table></div></div>
     """
 
-    # AES 加密
-    password = "vic2026"
+    # AES 加密 (使用環境變數中的 REPORT_PWD)
     salt = urandom(16)
     iv = urandom(12)
-    key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000, dklen=32)
+    key = hashlib.pbkdf2_hmac('sha256', REPORT_PWD.encode(), salt, 100000, dklen=32)
     aesgcm = AESGCM(key)
     ciphertext = aesgcm.encrypt(iv, report_inner.encode('utf-8'), None)
 
-    # 轉為 Base64
     s_b64 = base64.b64encode(salt).decode()
     i_b64 = base64.b64encode(iv).decode()
     c_b64 = base64.b64encode(ciphertext).decode()
 
-    # --- 重要：這裡完全不使用 f"""，避免大括號衝突 ---
+    # HTML 模板 (Plain String 避開 SyntaxError)
     html_template = """<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -253,19 +251,34 @@ document.getElementById('pwd-input').addEventListener('keydown', e => { if (e.ke
 </body>
 </html>"""
 
-    # 使用 replace 替換，保證安全
     final_html = html_template.replace("REPLACE_SALT", s_b64).replace("REPLACE_IV", i_b64).replace("REPLACE_CT", c_b64)
 
+    # 1. 寫入主要的 GitHub Pages 檔案
     os.makedirs("docs", exist_ok=True)
     with open("docs/portfolio.html", "w", encoding="utf-8") as f:
         f.write(final_html)
-    print("✅ HTML 報表已寫入 docs/portfolio.html")
+    print("✅ 主要報表已更新：docs/portfolio.html")
+
+    # 2. 寫入 Daily_Report 備份檔案
+    os.makedirs("Daily_Report", exist_ok=True)
+    tw_tz = timezone(timedelta(hours=8))
+    report_date = datetime.now(tw_tz).strftime('%Y-%m-%d')
+    backup_path = f"Daily_Report/portfolio_{report_date}.html"
+    with open(backup_path, "w", encoding="utf-8") as f:
+        f.write(final_html)
+    print(f"✅ 歷史備份已存檔：{backup_path}")
 
 # ==========================================
 # 4. 主程式
 # ==========================================
 if __name__ == "__main__":
     print("🚀 啟動資產分析任務...")
+    
+    # 安全檢查：確保密碼已設定
+    if not REPORT_PWD:
+        print("❌ 嚴重錯誤：找不到環境變數 REPORT_PWD，無法產生加密報表。")
+        exit(1)
+
     tw_tz = timezone(timedelta(hours=8))
     cache_bust = datetime.now(tw_tz).strftime('%Y%m%d%H%M')
     final_url = f"{REPORT_BASE_URL}?t={cache_bust}"
