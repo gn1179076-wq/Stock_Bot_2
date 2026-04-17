@@ -18,10 +18,11 @@ jobs:
     # 邏輯判斷：如果是 Issue 觸發，標題必須是 "RUN_BUILD" 才會執行
     # 如果是定時執行或手動執行，則直接通過
     if: |
-      github.event_name != 'issues' || 
+      github.event_name != 'issues' ||
       (github.event_name == 'issues' && github.event.issue.title == 'RUN_BUILD')
-    
+
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -29,6 +30,8 @@ jobs:
     steps:
       - name: 檢查程式碼
         uses: actions/checkout@v4
+        with:
+          ref: 0417_A02
 
       - name: 設定 Python 環境
         uses: actions/setup-python@v5
@@ -49,8 +52,8 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          REPORT_PWD: ${{ secrets.REPORT_PWD }} 
-          
+          REPORT_PWD: ${{ secrets.REPORT_PWD }}
+
       # 執行「保固追蹤」 (warranty.py) → 產生 docs/index.html
       - name: 執行「保固追蹤」 (warranty.py)
         uses: nick-fields/retry@v3
@@ -62,7 +65,7 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          REPORT_PWD: ${{ secrets.REPORT_PWD }} 
+          REPORT_PWD: ${{ secrets.REPORT_PWD }}
 
       # 部署 HTML 到 GitHub Pages
       - name: Setup Pages
