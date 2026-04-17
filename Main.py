@@ -166,6 +166,7 @@ def generate_html_report(rows, g_usd, g_twd, rates, t_cost, t_value, p_total, r_
         <div class="gold-item"><div class="gold-label">🟡 國際金價</div><div class="gold-value">${g_usd:,.1f} USD</div></div>
         <div class="gold-item"><div class="gold-label">💰 台灣金價</div><div class="gold-value">{g_twd} TWD/錢</div></div>
         <div class="gold-item"><div class="gold-label">💱 USD/TWD</div><div class="gold-value">{rates['US']:.2f}</div></div>
+        <div class="gold-item"><div class="gold-label">💴 TWD → JPY</div><div class="gold-value">{1 / rates['JP']:.2f}</div></div>
     </div>
     <div class="summary">
         <div class="summary-card"><div class="label">總投入</div><div class="value">${int(t_cost):,}</div></div>
