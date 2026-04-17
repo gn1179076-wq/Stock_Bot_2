@@ -80,7 +80,14 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
                 gold_twd_per_mace = (gold_usd / 31.1035 * 3.75) * rates["US"]
     except Exception as e:
         print(f"匯率或金價抓取失敗: {e}")
-
+        
+    # 匯率健檢：API 若回傳 0 / NaN / None 時回補預設值，避免後續 1/rates['JP'] 等除法爆炸
+    DEFAULT_RATES = {"US": 32.5, "HK": 4.15, "JP": 0.21, "TW": 1.0}
+    for k, v in DEFAULT_RATES.items():
+        r = rates.get(k)
+        if r is None or (isinstance(r, float) and (r == 0 or math.isnan(r))):
+            rates[k] = v
+            
     total_cost, total_value = 0.0, 0.0
     loss_details = ""
     html_rows = ""
@@ -134,7 +141,9 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
     tw_tz = timezone(timedelta(hours=8))
     current_time = datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M')
     gold_display = f"${int(gold_twd_per_mace):,}" if gold_twd_per_mace > 0 else "暫無資料"
-
+    jp_rate = rates.get('JP', 0)
+    jpy_per_twd = (1 / jp_rate) if jp_rate else 0
+    
     tg_msg = (
         f"<b>📊 Fiona 持股資產日報 ({git_branch})</b>\n" # 👈 在這裡使用 git_branch
         f"📅 {current_time}\n"
@@ -142,6 +151,7 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
         f"🟡 國際金價: <code>${gold_usd:.1f}</code>\n"
         f"💰 台灣金價: <code>{gold_display}</code> (錢)\n"
         f"💱 美元匯率: <code>{rates['US']:.2f}</code>\n"
+        f"💴 日圓匯率: 1 TWD = <code>{jpy_per_twd:.2f}</code> JPY\n"
         f"--------------------------\n"
         f"💰 總投入: <code>${int(total_cost):,}</code>\n"
         f"📈 總現值: <code>${int(total_value):,}</code>\n"
@@ -163,6 +173,7 @@ def generate_html_report(rows, g_usd, g_twd, rates, t_cost, t_value, p_total, r_
         <div class="gold-item"><div class="gold-label">🟡 國際金價</div><div class="gold-value">${g_usd:,.1f} USD</div></div>
         <div class="gold-item"><div class="gold-label">💰 台灣金價</div><div class="gold-value">{g_twd} TWD/錢</div></div>
         <div class="gold-item"><div class="gold-label">💱 USD/TWD</div><div class="gold-value">{rates['US']:.2f}</div></div>
+        <div class="gold-item"><div class="gold-label">💴 TWD → JPY</div><div class="gold-value">{1 / rates['JP']:.2f}</div></div>
     </div>
     <div class="summary">
         <div class="summary-card"><div class="label">總投入</div><div class="value">${int(t_cost):,}</div></div>
