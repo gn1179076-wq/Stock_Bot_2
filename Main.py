@@ -137,7 +137,6 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
 
     tg_msg = (
         f"<b>📊 Fiona 持股資產日報 ({git_branch})</b>\n" # 👈 在這裡使用 git_branch
-        parts =[f"<b>🏠 Fiona 家務提醒 {d_s} ({git_branch})</b>"] 
         f"📅 {current_time}\n"
         f"--------------------------\n"
         f"🟡 國際金價: <code>${gold_usd:.1f}</code>\n"
