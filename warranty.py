@@ -13,13 +13,19 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 # ==========================================
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID")
+
+# [修改] 改為 LINE Messaging API 所需的三個變數
+LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+LINE_USER_ID = os.getenv("LINE_USER_ID")
+
 REPORT_PWD = os.getenv("REPORT_PWD")  # 解鎖密碼
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
 ADMIN_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/admin.html"
 ASSETS_FILE = "home_assets.json"
 
 # ==========================================
-# 2. Telegram 推播函式
+# 2. 推播函式 (Telegram & LINE Bot API)
 # ==========================================
 def push_tg_message(text):
     if not TG_BOT_TOKEN or not TG_CHAT_ID:
@@ -43,6 +49,48 @@ def push_tg_message(text):
     except Exception as e:
         print(f"❌ Telegram 連線異常: {e}")
 
+
+# [修改] 使用新的 LINE Messaging API 推播函式
+def push_line_message(text):
+    if not LINE_CHANNEL_ID or not LINE_CHANNEL_SECRET or not LINE_USER_ID:
+        print("❌ 錯誤：找不到 LINE_CHANNEL_ID, LINE_CHANNEL_SECRET 或 LINE_USER_ID 環境變數")
+        return
+
+    try:
+        # 第一步：使用 Channel ID & Secret 取得暫時性的 Access Token
+        oauth_url = "https://api.line.me/v2/oauth/accessToken"
+        oauth_data = {
+            "grant_type": "client_credentials",
+            "client_id": LINE_CHANNEL_ID,
+            "client_secret": LINE_CHANNEL_SECRET
+        }
+        token_res = requests.post(oauth_url, data=oauth_data, timeout=15)
+        if token_res.status_code != 200:
+            print(f"❌ LINE Token 取得失敗 ({token_res.status_code}): {token_res.text}")
+            return
+        
+        access_token = token_res.json().get("access_token")
+
+        # 第二步：使用 Access Token 與 User ID 發送 Push Message
+        push_url = "https://api.line.me/v2/bot/message/push"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "to": LINE_USER_ID,
+            "messages": [{"type": "text", "text": text}]
+        }
+        
+        push_res = requests.post(push_url, headers=headers, json=payload, timeout=15)
+        if push_res.status_code == 200:
+            print("✅ LINE 訊息發送成功！")
+        else:
+            print(f"❌ LINE 發送失敗 ({push_res.status_code}): {push_res.text}")
+
+    except Exception as e:
+        print(f"❌ LINE 連線異常: {e}")
+
 # ==========================================
 # 3. 讀取資產清單
 # ==========================================
@@ -52,10 +100,10 @@ def load_assets():
             return json.load(f)
     except FileNotFoundError:
         print(f"❌ 找不到資產檔案：{ASSETS_FILE}")
-        return []
+        return[]
     except json.JSONDecodeError as e:
         print(f"❌ JSON 格式錯誤：{e}")
-        return []
+        return[]
 
 # ==========================================
 # 4. 資料處理 & HTML 報表產生
@@ -63,7 +111,7 @@ def load_assets():
 def process_data():
     if not REPORT_PWD:
         print("❌ 錯誤：找不到解鎖密碼 REPORT_PWD 環境變數")
-        return None, None, None
+        return None, None, None, None
 
     tz = timezone(timedelta(hours=8))
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -73,7 +121,9 @@ def process_data():
     home_assets = sorted(home_assets, key=lambda x: datetime.strptime(x['purchase_date'], "%Y-%m-%d") + timedelta(days=x['warranty_months'] * 30.44))
     
     app_rows, cons_rows, sub_rows = "", "", ""
-    soon_list, expired_list = [], []
+    soon_list, expired_list = [],[]
+    line_alerts =[] # 專門存給 LINE 的耗材警報
+    
     total_items = len(home_assets)
     safe_count, warning_count, danger_count = 0, 0, 0
 
@@ -86,6 +136,15 @@ def process_data():
             is_c = "[耗材]" in item['name']
             is_s = "[訂閱]" in item['name']
             n = item['name'].replace("[耗材] ", "").replace("[訂閱] ", "")
+
+            # 如果是耗材，且 7 天內到期，加入 LINE 警報清單
+            if is_c and rem <= 7:
+                if rem < 0:
+                    line_alerts.append(f"🔴 {n} (已逾期 {-rem} 天)")
+                elif rem == 0:
+                    line_alerts.append(f"⚠️ {n} (今天需更換)")
+                else:
+                    line_alerts.append(f"⚠️ {n} (剩 {rem} 天)")
 
             # 狀態判斷
             if rem < 0:
@@ -169,7 +228,7 @@ def process_data():
     s_b64 = base64.b64encode(salt).decode()
     i_b64 = base64.b64encode(iv).decode()
 
-    # ---- HTML 外部模板 (Plain String 避開 f-string 大括號衝突) ----
+    # ---- HTML 外部模板 ----
     html_template = """<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -233,12 +292,15 @@ document.getElementById('pwdInput').addEventListener('keydown', e => { if(e.key=
     os.makedirs("docs", exist_ok=True)
     with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(final_html)
-    
+    # 👇 新增這行印出提示
+    print("✅ 主要報表已更新：docs/index.html") 
     os.makedirs("Daily_Report", exist_ok=True)
     today_str = today.strftime('%Y-%m-%d')
     with open(f"Daily_Report/warranty_{today_str}.html", "w", encoding="utf-8") as f:
         f.write(final_html)
-
+    # 👇 新增這行印出提示
+    print(f"✅ 歷史備份已存檔：Daily_Report/warranty_{today_str}.html")
+    
     # 處理 receipts 目錄
     if os.path.isdir("receipts"):
         import shutil
@@ -246,18 +308,23 @@ document.getElementById('pwdInput').addEventListener('keydown', e => { if(e.key=
         if os.path.exists(target_receipts): shutil.rmtree(target_receipts)
         shutil.copytree("receipts", target_receipts)
 
-    return soon_list, expired_list, today_str
+    return soon_list, expired_list, today_str, line_alerts
 
 # ==========================================
 # 5. 主程式
 # ==========================================
 if __name__ == "__main__":
-    print("🚀 啟動資產檢查任務 (Telegram 版)...")
-    soon_l, expired_l, d_s = process_data()
+    print("🚀 啟動資產檢查任務 (支援 TG & LINE Bot)...")
+    # 獲取當前 Git 分支名稱
+    git_branch = os.getenv("GITHUB_REF_NAME", "unknown_branch") 
+    
+    soon_l, expired_l, d_s, line_alerts = process_data()
     
     if d_s:
-        # 組合 Telegram 訊息
-        parts = [f"<b>🏠 Fiona 家務提醒 {d_s}</b>"]
+        # ======= 1. 原本的 Telegram 處理邏輯 =======
+        # 在標題後面加上分支名稱
+        parts =[f"<b>🏠 Fiona 家務提醒 {d_s} ({git_branch})</b>"] 
+        
         if expired_l or soon_l:
             if expired_l:
                 parts.append("\n⛔ <b>已逾期 / 需處理：</b>")
@@ -272,3 +339,11 @@ if __name__ == "__main__":
         parts.append(f"🛠 <a href='{ADMIN_URL}'>管理後台</a>")
         
         push_tg_message("\n".join(parts))
+
+        # ======= 2. LINE Messaging API (官方機器人) 推播 =======
+        if line_alerts:
+            # 只有當「耗材小於等於7天」有東西時，才會發送 LINE
+            line_msg = f"🏠 Fiona 耗材更換提醒\n" + "\n".join(line_alerts)
+            push_line_message(line_msg)
+        else:
+            print("ℹ️ 沒有耗材在一週內到期，略過 LINE 發送。")
