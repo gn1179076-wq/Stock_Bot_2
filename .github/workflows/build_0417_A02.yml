@@ -30,11 +30,11 @@ jobs:
       - name: 安裝必要套件
         run: pip install -r requirements.txt
         
-      # 👈 新增：確保 Log 存放的資料夾存在
-      - name: 準備 Log 資料夾
-        run: mkdir -p Daily_Report
-        echo "GITHUB_REF_NAME: ${{ github.ref_name }}"
-        echo "GH_REF_NAME_ENV: $GITHUB_REF_NAME" # 檢查環境變數本身
+      - name: 準備 Log 資料夾並檢查環境變數 # 👈 修改步驟名稱，更清楚
+        run: | # 👈 注意這裡的管道符號 `|`，表示接下來是多行字串
+          mkdir -p Daily_Report
+          echo "GITHUB_REF_NAME (from context): ${{ github.ref_name }}"
+          echo "GITHUB_REF_NAME (from environment): $GITHUB_REF_NAME" # 檢查環境變數本身
         
       # 執行「資產日報」 (Main.py)
       - name: 執行「資產日報」 (Main.py)
