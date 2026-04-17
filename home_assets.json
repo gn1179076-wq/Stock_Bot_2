@@ -102,11 +102,5 @@
         "purchase_date": "2026-05-01",
         "warranty_months": 1,
         "fee": "630 N.T"
-    },
-    {
-        "name": "[耗材] TEST",
-        "purchase_date": "2026-04-17",
-        "warranty_months": 12,
-        "fee": ""
     }
 ]
