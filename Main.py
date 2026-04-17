@@ -134,7 +134,9 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
     tw_tz = timezone(timedelta(hours=8))
     current_time = datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M')
     gold_display = f"${int(gold_twd_per_mace):,}" if gold_twd_per_mace > 0 else "暫無資料"
-
+    jp_rate = rates.get('JP', 0)
+    jpy_per_twd = (1 / jp_rate) if jp_rate else 0
+    
     tg_msg = (
         f"<b>📊 Fiona 持股資產日報 ({git_branch})</b>\n" # 👈 在這裡使用 git_branch
         f"📅 {current_time}\n"
@@ -142,7 +144,7 @@ def get_stock_summary(report_url, git_branch="unknown_branch"): # 👈 這裡必
         f"🟡 國際金價: <code>${gold_usd:.1f}</code>\n"
         f"💰 台灣金價: <code>{gold_display}</code> (錢)\n"
         f"💱 美元匯率: <code>{rates['US']:.2f}</code>\n"
-        f"💴 日圓匯率(100): <code>{rates['JP']*100:.2f}</code>\n"
+        f"💴 日圓匯率: 1 TWD = <code>{jpy_per_twd:.2f}</code> JPY\n"
         f"--------------------------\n"
         f"💰 總投入: <code>${int(total_cost):,}</code>\n"
         f"📈 總現值: <code>${int(total_value):,}</code>\n"
