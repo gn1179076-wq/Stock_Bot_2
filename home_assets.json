@@ -108,5 +108,11 @@
         "purchase_date": "2026-04-15",
         "warranty_months": 1,
         "fee": "460 N.T"
+    },
+    {
+        "name": "[訂閱] Google Cloud",
+        "purchase_date": "2026-04-19",
+        "warranty_months": 2,
+        "fee": "0 N.T"
     }
 ]
