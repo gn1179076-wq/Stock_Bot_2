@@ -25,7 +25,7 @@ LINE_USER_ID = os.getenv("LINE_USER_ID")
 REPORT_PWD = os.getenv("REPORT_PWD")  # <--- 報表解鎖密碼
 
 # --- 一般設定 (可以直接在這裡修改) ---
-NOTIFY_TARGET = "both"  # 👉 在此修改推播目標："telegram" / "line" / "both"
+NOTIFY_TARGET = "discord"  # 👉 在此修改推播目標："telegram" / "line" / "both"
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
 PORTFOLIO_FILE = "portfolio.json"
 
@@ -108,6 +108,25 @@ def push_line_message(text):
 
     except Exception as e:
         print(f"❌ LINE 連線異常: {e}")
+
+# ==========================================
+# 4. Discord 推播函式
+# ==========================================
+def push_discord_message(text):
+    if not DISCORD_WEBHOOK_URL:
+        print("❌ 錯誤：找不到 DISCORD_WEBHOOK_URL 環境變數")
+        return
+    # 移除 HTML 標籤，Discord 不支援
+    clean_text = re.sub('<.*?>', '', text)
+    try:
+        payload = {"content": clean_text}
+        res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
+        if res.status_code == 204:
+            print("✅ Discord 股票日報發送成功！")
+        else:
+            print(f"❌ Discord 發送失敗 ({res.status_code}): {res.text}")
+    except Exception as e:
+        print(f"❌ Discord 連線異常: {e}")
 
 # ==========================================
 # 4. 抓取資料 & 產生報表
@@ -333,8 +352,9 @@ if __name__ == "__main__":
     msg = get_stock_summary(final_url, git_branch)
 
     # ── 開關控制 ──
-    if NOTIFY_TARGET in ("telegram", "both"):
+    if NOTIFY_TARGET in ("telegram", "both", "all"):
         push_tg_message(msg)
-
-    if NOTIFY_TARGET in ("line", "both"):
+    if NOTIFY_TARGET in ("line", "both", "all"):
         push_line_message(msg)
+    if NOTIFY_TARGET in ("discord", "all"):          # 👈 新增這段
+        push_discord_message(msg)
