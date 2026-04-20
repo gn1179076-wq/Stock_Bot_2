@@ -25,7 +25,7 @@ LINE_USER_ID = os.getenv("LINE_USER_ID")
 REPORT_PWD = os.getenv("REPORT_PWD")  # <--- 報表解鎖密碼
 
 # --- 一般設定 (可以直接在這裡修改) ---
-NOTIFY_TARGET = "both"  # 👉 在此修改推播目標："telegram" / "line" / "both"
+NOTIFY_TARGET = "line"  # 👉 在此修改推播目標："telegram" / "line" / "both"
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
 PORTFOLIO_FILE = "portfolio.json"
 
