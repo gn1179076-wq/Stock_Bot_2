@@ -54,7 +54,6 @@ jobs:
           LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
           LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-          NOTIFY_TARGET: ${{ secrets.NOTIFY_TARGET }}
 
       # 執行「保固追蹤」 (warranty.py) → 產生 docs/index.html
       - name: 執行「保固追蹤」 (warranty.py)
@@ -71,7 +70,6 @@ jobs:
           LINE_CHANNEL_ID: ${{ secrets.LINE_CHANNEL_ID }}
           LINE_CHANNEL_SECRET: ${{ secrets.LINE_CHANNEL_SECRET }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-          NOTIFY_TARGET: ${{ secrets.NOTIFY_TARGET }}
 
       # 部署 HTML 到 GitHub Pages
       - name: Setup Pages
