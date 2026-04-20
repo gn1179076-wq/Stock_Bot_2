@@ -127,11 +127,11 @@ def push_discord_message(text):
         "username": "Fiona 財經管家",
         "avatar_url": "https://github.com/fluidicon.png", # 可以換成你喜歡的頭像
         "embeds": [{
-            "title": "📈 查看完整投資組合儀表板",
-            "url": REPORT_BASE_URL,
+            #"title": "📈 查看完整投資組合儀表板",
+            #"url": REPORT_BASE_URL,
             "description": clean_text,
             "color": embed_color,
-            "footer": {"text": "Stock_Bot_2 • 自動化任務"},
+            #"footer": {"text": "Stock_Bot_2 • 自動化任務"},
             "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
         }]
     }
