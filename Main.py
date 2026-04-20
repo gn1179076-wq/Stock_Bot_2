@@ -116,31 +116,26 @@ def push_discord_message(text):
     if not DISCORD_WEBHOOK_URL:
         return
 
-    # 1. 判斷邊框顏色
     is_danger = any(icon in text for icon in ["📉", "🔴", "⛔"])
     embed_color = 15158332 if is_danger else 3066993
     
-    # 2. 徹底清理內容文字
-    # 我們不再轉換 [文字](url)，而是直接把所有 <a> 標籤整段刪掉
-    # 這樣 description 裡面就絕對不會出現網址
+    # 1. 徹底拔除內容中的所有 HTML 連結文字，確保數據純淨
     clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', '', text)
-    
-    # 移除其餘 HTML 標籤
     clean_text = re.sub(r'<[^>]+>', '', clean_text)
     
-    # 移除原本字串中可能殘留的標題行或導覽文字
-    redundant_texts = ["📋 查看儀表板", "📋 查看完整投資組合儀表板", "⚙️ 管理後台", "🏠 Fiona 家務提醒"]
+    redundant_texts = ["📋 查看儀表板", "📋 查看完整投資組合儀表板", "⚙️ 管理後台"]
     for rt in redundant_texts:
         clean_text = clean_text.replace(rt, "")
 
-    # 3. 組合 Discord Payload
+    # 2. 關鍵改動：不使用 title/url 欄位，把連結藏在 description 第一行並加 < >
+    # 這樣 Discord 就不會抓取 Favicon 圖示，也不會產生底部預覽
+    display_text = f"📊 **[點我進入完整儀表板](<{REPORT_BASE_URL}>)**\n\n" + clean_text.strip()
+
     payload = {
         "username": "Fiona 智慧管家",
         "avatar_url": "https://github.com/fluidicon.png", 
         "embeds": [{
-            "title": "📈 點擊進入完整儀表板", # 這是全訊息唯一的連結入口
-            "url": REPORT_BASE_URL,
-            "description": clean_text.strip(), # 這裡現在保證只有數據文字
+            "description": display_text, # 連結在這裡，且有 < > 保護
             "color": embed_color,
             "fields": [
                 {
@@ -159,9 +154,7 @@ def push_discord_message(text):
     }
 
     try:
-        res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
-        if res.status_code == 204:
-            print("✅ Discord Embed 訊息發送成功！")
+        requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
     except Exception as e:
         print(f"❌ Discord 連線異常: {e}")
         
