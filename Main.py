@@ -21,7 +21,7 @@ TG_CHAT_ID = os.getenv("TG_CHAT_ID")
 LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 LINE_USER_ID = os.getenv("LINE_USER_ID")
-
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")  # ← 加這行
 REPORT_PWD = os.getenv("REPORT_PWD")  # <--- 報表解鎖密碼
 
 # --- 一般設定 (可以直接在這裡修改) ---
