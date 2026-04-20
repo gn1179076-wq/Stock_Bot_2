@@ -120,25 +120,27 @@ def push_discord_message(text):
     is_danger = any(icon in text for icon in ["📉", "🔴", "⛔"])
     embed_color = 15158332 if is_danger else 3066993
     
-    # 2. 清理文字
-    # 轉換連結並移除標籤
-    clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', r'[\2](\1)', text)
+    # 2. 徹底清理內容文字
+    # 我們不再轉換 [文字](url)，而是直接把所有 <a> 標籤整段刪掉
+    # 這樣 description 裡面就絕對不會出現網址
+    clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', '', text)
+    
+    # 移除其餘 HTML 標籤
     clean_text = re.sub(r'<[^>]+>', '', clean_text)
     
-    # --- 關鍵：在這裡徹底刪掉原本字串末尾的文字，避免跟標題重複 ---
-    redundant_links = ["📋 查看儀表板", "📋 查看完整投資組合儀表板", "⚙️ 管理後台"]
-    for link_text in redundant_links:
-        clean_text = clean_text.replace(link_text, "")
-    # -------------------------------------------------------
+    # 移除原本字串中可能殘留的標題行或導覽文字
+    redundant_texts = ["📋 查看儀表板", "📋 查看完整投資組合儀表板", "⚙️ 管理後台", "🏠 Fiona 家務提醒"]
+    for rt in redundant_texts:
+        clean_text = clean_text.replace(rt, "")
 
     # 3. 組合 Discord Payload
     payload = {
         "username": "Fiona 智慧管家",
         "avatar_url": "https://github.com/fluidicon.png", 
         "embeds": [{
-            "title": "📈 點擊進入完整儀表板", # 保留這個就好
-            "url": REPORT_BASE_URL,          # 保留這個就好
-            "description": clean_text.strip(), # 這裡放已經清乾淨的文字
+            "title": "📈 點擊進入完整儀表板", # 這是全訊息唯一的連結入口
+            "url": REPORT_BASE_URL,
+            "description": clean_text.strip(), # 這裡現在保證只有數據文字
             "color": embed_color,
             "fields": [
                 {
