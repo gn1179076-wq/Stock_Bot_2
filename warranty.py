@@ -136,7 +136,7 @@ def push_discord_message(text):
                 {"name": "🌐 運行分支", "value": f"`{os.getenv('GITHUB_REF_NAME', 'main')}`", "inline": True},
                 {"name": "⚙️ 系統操作", "value": f"[進入管理後台]({ADMIN_URL})", "inline": True}
             ],
-            "footer": {"text": "Fiona Home Assets Monitor • 自動化檢查"},
+            # "footer": {"text": "Fiona Home Assets Monitor • 自動化檢查"},
             "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
         }]
     }
