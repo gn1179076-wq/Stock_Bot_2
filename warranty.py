@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import requests
+import re  # ← 新增這行
 import os
 import json
 import hashlib
@@ -17,10 +18,11 @@ TG_CHAT_ID = os.getenv("TG_CHAT_ID")
 LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 LINE_USER_ID = os.getenv("LINE_USER_ID")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")  # ← 新增這行
 REPORT_PWD = os.getenv("REPORT_PWD")  # 解鎖密碼
 
 # --- 一般設定 (可以直接在這裡修改) ---
-NOTIFY_TARGET = "line"  # 👉 在此修改推播目標："telegram" / "line" / "both"
+NOTIFY_TARGET = "discord"  # 👉 在此修改推播目標："telegram" / "line" / "both"
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
 ADMIN_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/admin.html"
 ASSETS_FILE = "home_assets.json"
@@ -90,6 +92,27 @@ def push_line_message(text):
 
     except Exception as e:
         print(f"❌ LINE 連線異常: {e}")
+
+# ==========================================
+# 3. Discord 推播函式
+# ==========================================
+def push_discord_message(text):
+    if not DISCORD_WEBHOOK_URL:
+        print("❌ 錯誤：找不到 DISCORD_WEBHOOK_URL 環境變數")
+        return
+    # 將 HTML <a href="url">文字</a> 轉成 Discord Markdown [文字](url)
+    clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', r'[\2](\1)', text)
+    # 移除其他殘餘 HTML 標籤（<b> 等）
+    clean_text = re.sub(r'<[^>]+>', '', clean_text)
+    try:
+        payload = {"content": clean_text}
+        res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
+        if res.status_code == 204:
+            print("✅ Discord 訊息發送成功！")
+        else:
+            print(f"❌ Discord 發送失敗 ({res.status_code}): {res.text}")
+    except Exception as e:
+        print(f"❌ Discord 連線異常: {e}")
 
 # ==========================================
 # 3. 讀取資產清單
@@ -348,3 +371,6 @@ if __name__ == "__main__":
                 push_line_message(line_msg)
             else:
                 print("ℹ️ 沒有耗材在一週內到期，略過 LINE 發送。")
+
+        if NOTIFY_TARGET in ("discord", "all"):  # ← 新增這段
+            push_discord_message(tg_msg)
