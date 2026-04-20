@@ -114,19 +114,32 @@ def push_line_message(text):
 # ==========================================
 def push_discord_message(text):
     if not DISCORD_WEBHOOK_URL:
-        print("❌ 錯誤：找不到 DISCORD_WEBHOOK_URL 環境變數")
         return
-    # 將 HTML <a href="url">文字</a> 轉成 Discord Markdown [文字](url)
-    clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', r'[\2](\1)', text)
-    # 移除其他殘餘 HTML 標籤（<b>, <code> 等）
-    clean_text = re.sub(r'<[^>]+>', '', clean_text)
+
+    # 1. 判斷顏色：如果文字裡有虧損符號就用紅色，否則綠色
+    embed_color = 15158332 if "📉" in text or "🟢 🔴" in text else 3066993
+    
+    # 2. 簡單清理 text (Discord Embed 不支援 HTML，要把你原本的 <b> <code> 換掉)
+    # 這裡我們直接用最偷懶但也最穩的方式：把 HTML 標籤拿掉
+    clean_text = re.sub(r'<[^>]+>', '', text)
+
+    payload = {
+        "username": "Fiona 財經管家",
+        "avatar_url": "https://github.com/fluidicon.png", # 可以換成你喜歡的頭像
+        "embeds": [{
+            "title": "📈 查看完整投資組合儀表板",
+            "url": REPORT_BASE_URL,
+            "description": clean_text,
+            "color": embed_color,
+            "footer": {"text": "Stock_Bot_2 • 自動化任務"},
+            "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
+        }]
+    }
+
     try:
-        payload = {"content": clean_text}
         res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
         if res.status_code == 204:
-            print("✅ Discord 股票日報發送成功！")
-        else:
-            print(f"❌ Discord 發送失敗 ({res.status_code}): {res.text}")
+            print("✅ Discord Embed 報發送成功！")
     except Exception as e:
         print(f"❌ Discord 連線異常: {e}")
 
