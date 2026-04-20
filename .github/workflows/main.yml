@@ -2,7 +2,7 @@ name: Vic_Daily_Report
 
 on:
   schedule:
-    - cron: '17 9 * * *' # 每天下午 5:17 執行
+    - cron: '55 21 * * *' # 台灣時間 05:55 (UTC 21:55)
   workflow_dispatch:      # 支援 GitHub 網頁手動點擊執行
   issues:                # 支援透過開啟 Issue 觸發
     types: [opened]
