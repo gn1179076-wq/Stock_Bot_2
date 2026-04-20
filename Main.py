@@ -11,16 +11,20 @@ from datetime import datetime, timedelta, timezone
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # ==========================================
-# 1. 安全設定區 (從環境變數讀取)
+# 1. 設定區
 # ==========================================
+# --- 機密資料 (保留從 GitHub Secrets / 環境變數讀取) ---
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID")
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_USER_ID = os.getenv("LINE_USER_ID")
-NOTIFY_TARGET = os.getenv("NOTIFY_TARGET", "telegram")  # telegram / line / both
 REPORT_PWD = os.getenv("REPORT_PWD")  # <--- 報表解鎖密碼
+
+# --- 一般設定 (可以直接在這裡修改) ---
+NOTIFY_TARGET = "line"  # 👉 在此修改推播目標："telegram" / "line" / "both"
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/portfolio.html"
 PORTFOLIO_FILE = "portfolio.json"
+
 
 def load_portfolio():
     try:
