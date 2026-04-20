@@ -114,27 +114,48 @@ def push_line_message(text):
 # ==========================================
 def push_discord_message(text):
     if not DISCORD_WEBHOOK_URL:
+        print("❌ 錯誤：找不到 DISCORD_WEBHOOK_URL 環境變數")
         return
 
-    # 1. 判斷顏色：如果文字裡有虧損符號就用紅色，否則綠色
-    embed_color = 15158332 if "📉" in text or "🟢 🔴" in text else 3066993
+    # 1. 判斷邊框顏色：有虧損或警報符號就用紅色，否則綠色
+    # 這裡會檢查你的文字裡是否有 📉 (股票) 或 🔴/⛔ (家務)
+    is_danger = any(icon in text for icon in ["📉", "🔴", "⛔"])
+    embed_color = 15158332 if is_danger else 3066993
     
-    # 2. 簡單清理 text (Discord Embed 不支援 HTML，要把你原本的 <b> <code> 換掉)
-    # 這裡我們直接用最偷懶但也最穩的方式：把 HTML 標籤拿掉
-    clean_text = re.sub(r'<[^>]+>', '', text)
-
-    # --- 新增這行：把重複的結尾過濾掉 ---
-    clean_text = clean_text.replace("📋 查看完整投資組合儀表板", "").strip()
+    # 2. 清理文字：將 HTML 轉為 Discord 支援的格式
+    # 轉換連結：<a href="url">文字</a> -> [文字](url)
+    clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', r'[\2](\1)', text)
+    # 移除其餘 HTML 標籤（如 <b>, <code> 等）
+    clean_text = re.sub(r'<[^>]+>', '', clean_text)
     
+    # --- 關鍵優化：過濾掉重複出現的底部連結 ---
+    # 這樣就不會出現兩次「查看儀表板」
+    redundant_links = ["📋 查看儀表板", "📋 查看完整投資組合儀表板", "⚙️ 管理後台"]
+    for link_text in redundant_links:
+        clean_text = clean_text.replace(link_text, "")
+    
+    # 3. 組合 Discord Payload
     payload = {
-        "username": "Fiona 財經管家",
-        "avatar_url": "https://github.com/fluidicon.png", # 可以換成你喜歡的頭像
+        "username": "Fiona 智慧管家",
+        "avatar_url": "https://github.com/fluidicon.png", 
         "embeds": [{
-            "title": "📈 查看完整投資組合儀表板",
+            "title": "📈 點擊進入完整儀表板",
             "url": REPORT_BASE_URL,
-            "description": clean_text,
+            "description": clean_text.strip(),
             "color": embed_color,
-            #"footer": {"text": "Stock_Bot_2 • 自動化任務"},
+            "fields": [
+                {
+                    "name": "🌐 運行分支", 
+                    "value": f"`{os.getenv('GITHUB_REF_NAME', 'main')}`", 
+                    "inline": True
+                },
+                {
+                    "name": "⚙️ 任務來源", 
+                    "value": f"`{os.getenv('GITHUB_WORKFLOW', 'Manual')}`", 
+                    "inline": True
+                }
+            ],
+            #"footer": {"text": "Stock_Bot_2 • Fiona's Auto System"},
             "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
         }]
     }
@@ -142,7 +163,9 @@ def push_discord_message(text):
     try:
         res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
         if res.status_code == 204:
-            print("✅ Discord Embed 報發送成功！")
+            print("✅ Discord Embed 訊息發送成功！")
+        else:
+            print(f"❌ Discord 發送失敗 ({res.status_code}): {res.text}")
     except Exception as e:
         print(f"❌ Discord 連線異常: {e}")
 
