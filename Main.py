@@ -123,6 +123,9 @@ def push_discord_message(text):
     # 這裡我們直接用最偷懶但也最穩的方式：把 HTML 標籤拿掉
     clean_text = re.sub(r'<[^>]+>', '', text)
 
+    # --- 新增這行：把重複的結尾過濾掉 ---
+    clean_text = clean_text.replace("📋 查看完整投資組合儀表板", "").strip()
+    
     payload = {
         "username": "Fiona 財經管家",
         "avatar_url": "https://github.com/fluidicon.png", # 可以換成你喜歡的頭像
