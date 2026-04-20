@@ -315,35 +315,37 @@ document.getElementById('pwdInput').addEventListener('keydown', e => { if(e.key=
 # ==========================================
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務 (支援 TG & LINE Bot)...")
-    # 獲取當前 Git 分支名稱
-    git_branch = os.getenv("GITHUB_REF_NAME", "unknown_branch") 
-    
+    git_branch = os.getenv("GITHUB_REF_NAME", "unknown_branch")
+    NOTIFY_TARGET = os.getenv("NOTIFY_TARGET", "both")
+
     soon_l, expired_l, d_s, line_alerts = process_data()
-    
+
     if d_s:
-        # ======= 1. 原本的 Telegram 處理邏輯 =======
         # 在標題後面加上分支名稱
-        parts =[f"<b>🏠 Fiona 家務提醒 {d_s} ({git_branch})</b>"] 
-        
+        parts = [f"<b>🏠 Fiona 家務提醒 {d_s} ({git_branch})</b>"]
+
         if expired_l or soon_l:
             if expired_l:
-                parts.append("\n⛔ <b>已逾期 / 需處理：</b>")
+                parts.append("\n⛔ <b>已逆期 / 需處理：</b>")
                 parts.extend(expired_l)
             if soon_l:
                 parts.append("\n⚠️ <b>即將到期 (20天內)：</b>")
                 parts.extend(soon_l)
         else:
-            parts.append("\n🎉 所有設備及耗材狀態正常！")
+            parts.append("\n🎉 所有設備及肃材狀態正常！")
 
         parts.append(f"\n📋 <a href='{REPORT_BASE_URL}'>查看儀表板</a>")
-        parts.append(f"🛠 <a href='{ADMIN_URL}'>管理後台</a>")
-        
-        push_tg_message("\n".join(parts))
+        parts.append(f"⚙️ <a href='{ADMIN_URL}'>管理後台</a>")
 
-        # ======= 2. LINE Messaging API (官方機器人) 推播 =======
-        if line_alerts:
-            # 只有當「耗材小於等於7天」有東西時，才會發送 LINE
-            line_msg = f"🏠 Fiona 耗材更換提醒\n" + "\n".join(line_alerts)
-            push_line_message(line_msg)
-        else:
-            print("ℹ️ 沒有耗材在一週內到期，略過 LINE 發送。")
+        tg_msg = "\n".join(parts)
+
+        # ── 開關控制 ──
+        if NOTIFY_TARGET in ("telegram", "both"):
+            push_tg_message(tg_msg)
+
+        if NOTIFY_TARGET in ("line", "both"):
+            if line_alerts:
+                line_msg = "🏠 Fiona 肃材更換提醒\n" + "\n".join(line_alerts)
+                push_line_message(line_msg)
+            else:
+                print("ℹ️ 沒有肃材在一週內到期，略過 LINE 發送。")
