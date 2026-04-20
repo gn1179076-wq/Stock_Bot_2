@@ -9,17 +9,18 @@ from os import urandom
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # ==========================================
-# 1. 安全設定區 (從環境變數讀取)
+# 1. 設定區
 # ==========================================
+# --- 機密資料 (從環境變數讀取) ---
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID")
-
-# [修改] 改為 LINE Messaging API 所需的三個變數
 LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 LINE_USER_ID = os.getenv("LINE_USER_ID")
-
 REPORT_PWD = os.getenv("REPORT_PWD")  # 解鎖密碼
+
+# --- 一般設定 (可以直接在這裡修改) ---
+NOTIFY_TARGET = "both"  # 👉 在此修改推播目標："telegram" / "line" / "both"
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
 ADMIN_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/admin.html"
 ASSETS_FILE = "home_assets.json"
@@ -50,7 +51,6 @@ def push_tg_message(text):
         print(f"❌ Telegram 連線異常: {e}")
 
 
-# [修改] 使用新的 LINE Messaging API 推播函式
 def push_line_message(text):
     if not LINE_CHANNEL_ID or not LINE_CHANNEL_SECRET or not LINE_USER_ID:
         print("❌ 錯誤：找不到 LINE_CHANNEL_ID, LINE_CHANNEL_SECRET 或 LINE_USER_ID 環境變數")
@@ -79,7 +79,7 @@ def push_line_message(text):
         }
         payload = {
             "to": LINE_USER_ID,
-            "messages": [{"type": "text", "text": text}]
+            "messages":[{"type": "text", "text": text}]
         }
         
         push_res = requests.post(push_url, headers=headers, json=payload, timeout=15)
@@ -316,23 +316,22 @@ document.getElementById('pwdInput').addEventListener('keydown', e => { if(e.key=
 if __name__ == "__main__":
     print("🚀 啟動資產檢查任務 (支援 TG & LINE Bot)...")
     git_branch = os.getenv("GITHUB_REF_NAME", "unknown_branch")
-    NOTIFY_TARGET = os.getenv("NOTIFY_TARGET", "both")
 
     soon_l, expired_l, d_s, line_alerts = process_data()
 
     if d_s:
         # 在標題後面加上分支名稱
-        parts = [f"<b>🏠 Fiona 家務提醒 {d_s} ({git_branch})</b>"]
+        parts =[f"<b>🏠 Fiona 家務提醒 {d_s} ({git_branch})</b>"]
 
         if expired_l or soon_l:
             if expired_l:
-                parts.append("\n⛔ <b>已逆期 / 需處理：</b>")
+                parts.append("\n⛔ <b>已逾期 / 需處理：</b>")
                 parts.extend(expired_l)
             if soon_l:
                 parts.append("\n⚠️ <b>即將到期 (20天內)：</b>")
                 parts.extend(soon_l)
         else:
-            parts.append("\n🎉 所有設備及肃材狀態正常！")
+            parts.append("\n🎉 所有設備及耗材狀態正常！")
 
         parts.append(f"\n📋 <a href='{REPORT_BASE_URL}'>查看儀表板</a>")
         parts.append(f"⚙️ <a href='{ADMIN_URL}'>管理後台</a>")
@@ -345,7 +344,7 @@ if __name__ == "__main__":
 
         if NOTIFY_TARGET in ("line", "both"):
             if line_alerts:
-                line_msg = "🏠 Fiona 肃材更換提醒\n" + "\n".join(line_alerts)
+                line_msg = "🏠 Fiona 耗材更換提醒\n" + "\n".join(line_alerts)
                 push_line_message(line_msg)
             else:
-                print("ℹ️ 沒有肃材在一週內到期，略過 LINE 發送。")
+                print("ℹ️ 沒有耗材在一週內到期，略過 LINE 發送。")
