@@ -116,8 +116,10 @@ def push_discord_message(text):
     if not DISCORD_WEBHOOK_URL:
         print("❌ 錯誤：找不到 DISCORD_WEBHOOK_URL 環境變數")
         return
-    # 移除 HTML 標籤，Discord 不支援
-    clean_text = re.sub('<.*?>', '', text)
+    # 將 HTML <a href="url">文字</a> 轉成 Discord Markdown [文字](url)
+    clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', r'[\2](\1)', text)
+    # 移除其他殘餘 HTML 標籤（<b>, <code> 等）
+    clean_text = re.sub(r'<[^>]+>', '', clean_text)
     try:
         payload = {"content": clean_text}
         res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
