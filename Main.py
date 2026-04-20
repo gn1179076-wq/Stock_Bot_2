@@ -128,9 +128,9 @@ def push_discord_message(text):
     # 移除其餘 HTML 標籤（如 <b>, <code> 等）
     clean_text = re.sub(r'<[^>]+>', '', clean_text)
     
-    # 3. 組合純淨 Payload (移除 title 和 url，改放在 description 第一行)
-    # 這樣 Discord 就不會因為有 title+url 而在底部多生出一行
-    display_text = f"### [📊 點我進入完整儀表板]({REPORT_BASE_URL})\n\n" + clean_text.strip()
+    # --- 關鍵修正：在網址兩端加上 < > 強制關閉 Discord 預覽 ---
+    # 同時我們不使用 Markdown 標題語法，改用粗體，避免觸發 Discord 的特殊預覽邏輯
+    display_text = f"🔗 **[點我進入完整儀表板](<{REPORT_BASE_URL}>)**\n\n" + clean_text.strip()
     
     # 3. 組合 Discord Payload
     payload = {
