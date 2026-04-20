@@ -100,15 +100,51 @@ def push_discord_message(text):
     if not DISCORD_WEBHOOK_URL:
         print("❌ 錯誤：找不到 DISCORD_WEBHOOK_URL 環境變數")
         return
-    # 將 HTML <a href="url">文字</a> 轉成 Discord Markdown [文字](url)
-    clean_text = re.sub(r'<a href=[\'"]([^\'"]+)[\'"]>(.*?)</a>', r'[\2](\1)', text)
-    # 移除其他殘餘 HTML 標籤（<b> 等）
+
+    # 1. 根據內容判斷邊框顏色
+    if "⛔" in text or "🔴" in text:
+        embed_color = 15158332  # 紅色 (危險/逾期)
+        status_icon = "🚨"
+    elif "⚠️" in text or "🔸" in text:
+        embed_color = 16098851  # 橘色 (警告/即將到期)
+        status_icon = "⚠️"
+    else:
+        embed_color = 3066993   # 綠色 (正常)
+        status_icon = "✅"
+
+    # 2. 清理文字：將 HTML 轉為 Markdown，並過濾掉重複的連結
+    # 移除原本組給 TG 的底部連結，避免跟 Embed Title 重複
+    clean_text = text
+    clean_text = clean_text.replace(f"\n📋 <a href='{REPORT_BASE_URL}'>查看儀表板</a>", "")
+    clean_text = clean_text.replace(f"⚙️ <a href='{ADMIN_URL}'>管理後台</a>", "")
+    
+    # 移除其餘 HTML 標籤
     clean_text = re.sub(r'<[^>]+>', '', clean_text)
+    # 移除標題行（因為會放在 Embed Title）
+    clean_text = re.sub(r'🏠 Fiona 家務提醒.*?\n', '', clean_text)
+
+    # 3. 建立 Discord Embed Payload
+    payload = {
+        "username": "Fiona 家務管家",
+        "avatar_url": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/home/materialicons/24dp/1x/baseline_home_black_24dp.png",
+        "embeds": [{
+            "title": f"{status_icon} Fiona 家務資產狀態快報",
+            "url": REPORT_BASE_URL,
+            "description": clean_text.strip(),
+            "color": embed_color,
+            "fields": [
+                {"name": "🌐 運行分支", "value": f"`{os.getenv('GITHUB_REF_NAME', 'main')}`", "inline": True},
+                {"name": "⚙️ 系統操作", "value": f"[進入管理後台]({ADMIN_URL})", "inline": True}
+            ],
+            "footer": {"text": "Fiona Home Assets Monitor • 自動化檢查"},
+            "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
+        }]
+    }
+
     try:
-        payload = {"content": clean_text}
         res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
         if res.status_code == 204:
-            print("✅ Discord 訊息發送成功！")
+            print("✅ Discord Embed 訊息發送成功！")
         else:
             print(f"❌ Discord 發送失敗 ({res.status_code}): {res.text}")
     except Exception as e:
