@@ -58,7 +58,6 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('assets')">🏠 家務資產</button>
     <button class="tab-btn" onclick="switchTab('portfolio')">📈 股票投資組合</button>
-    <button class="tab-btn" onclick="switchTab('card')">💳 信用卡扣款</button>
   </div>
 
   <div class="tab-panel active" id="tab-assets">
@@ -77,14 +76,6 @@
     <div class="card" id="portfolioArea"><p style="text-align:center;color:#a0aec0;padding:40px 0">請先輸入 GitHub Token 並點擊「載入」</p></div>
   </div>
 
-  <div class="tab-panel" id="tab-card">
-    <div class="header" style="background:linear-gradient(135deg,#ed8936,#dd6b20)">
-      <h1>信用卡繳款管理</h1>
-      <button class="btn btn-danger" onclick="resetCardStatus()">重置狀態</button>
-    </div>
-    <div class="card" id="cardArea"></div>
-  </div>
-  
   <!-- 資產編輯彈窗 -->
   <div class="modal" id="editModal">
     <div class="modal-box">
@@ -356,51 +347,6 @@ async function commitPortfolio(msg){
 function showLb(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('active')}
 let toastTimer;
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',3000)}
-
-// --- 信用卡管理邏輯 (直接同步 GitHub) ---
-const creditCards = [
-    { id: 'cat', name: '國泰世華', date: '每月 2 日' },
-    { id: 'yu', name: '玉山信用卡', date: '每月 3～5 日' },
-    { id: 'fubon', name: '台北富邦', date: '每月 9～12 日' },
-    { id: 'ctbc', name: '中國信託', date: '每月 28 日' },
-    { id: 'dbs', name: '星展銀行', date: '請登入 DBS Card+' }
-];
-
-async function renderCards() {
-    // 這裡的 portfolio 是你在 loadAll() 載入時存下來的變數
-    let status = portfolio.card_status || {}; 
-    let html = `<table><thead><tr><th>勾選</th><th>銀行</th><th>繳款日</th></tr></thead><tbody>`;
-    creditCards.forEach(card => {
-        const isChecked = status[card.id] === true;
-        html += `<tr>
-            <td><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="updateCardStatus('${card.id}', this.checked)"></td>
-            <td><strong>${card.name}</strong></td>
-            <td>${card.date}</td>
-        </tr>`;
-    });
-    html += `</tbody></table>`;
-    document.getElementById('cardArea').innerHTML = html;
-}
-
-async function updateCardStatus(id, checked) {
-    if (!portfolio.card_status) portfolio.card_status = {};
-    portfolio.card_status[id] = checked;
-    
-    try {
-        await commitPortfolio('Update card_status: ' + id);
-        toast(checked ? '已標記：已扣款 ✅' : '已取消標記');
-    } catch(e) {
-        toast('同步失敗：' + e.message);
-    }
-}
-
-async function resetCardStatus() {
-    if(!confirm('確定要清除所有勾選狀態嗎？')) return;
-    portfolio.card_status = {};
-    await commitPortfolio('Reset card_status');
-    renderCards();
-    toast('狀態已重置');
-}
 </script>
 </body>
 </html>
