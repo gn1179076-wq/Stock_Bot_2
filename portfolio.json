@@ -1,74 +1,65 @@
-{
-  "portfolio": [
+[
     {
-      "name": "0056 元大高股息",
-      "ticker": "0056.TW",
-      "shares": 2000,
-      "cost_price": 32.38,
-      "market": "TW"
+        "name": "0056 元大高股息",
+        "ticker": "0056.TW",
+        "shares": 2000,
+        "cost_price": 32.38,
+        "market": "TW"
     },
     {
-      "name": "2356 英業達",
-      "ticker": "2356.TW",
-      "shares": 34000,
-      "cost_price": 48.82,
-      "market": "TW"
+        "name": "2356 英業達",
+        "ticker": "2356.TW",
+        "shares": 34000,
+        "cost_price": 48.82,
+        "market": "TW"
     },
     {
-      "name": "2376 技嘉",
-      "ticker": "2376.TW",
-      "shares": 2000,
-      "cost_price": 294,
-      "market": "TW"
+        "name": "2376 技嘉",
+        "ticker": "2376.TW",
+        "shares": 2000,
+        "cost_price": 294,
+        "market": "TW"
     },
     {
-      "name": "2881 富邦金",
-      "ticker": "2881.TW",
-      "shares": 3558,
-      "cost_price": 56.16,
-      "market": "TW"
+        "name": "2881 富邦金",
+        "ticker": "2881.TW",
+        "shares": 3558,
+        "cost_price": 56.16,
+        "market": "TW"
     },
     {
-      "name": "2892 第一金",
-      "ticker": "2892.TW",
-      "shares": 28667,
-      "cost_price": 17.51,
-      "market": "TW"
+        "name": "2892 第一金",
+        "ticker": "2892.TW",
+        "shares": 28667,
+        "cost_price": 17.51,
+        "market": "TW"
     },
     {
-      "name": "TSLA Tesla",
-      "ticker": "TSLA",
-      "shares": 45,
-      "cost_price": 330,
-      "market": "US"
+        "name": "TSLA Tesla",
+        "ticker": "TSLA",
+        "shares": 45,
+        "cost_price": 330,
+        "market": "US"
     },
     {
-      "name": "3988 中國銀行",
-      "ticker": "3988.HK",
-      "shares": 156000,
-      "cost_price": 3.232,
-      "market": "HK"
+        "name": "3988 中國銀行",
+        "ticker": "3988.HK",
+        "shares": 156000,
+        "cost_price": 3.232,
+        "market": "HK"
     },
     {
-      "name": "8031 三井物產",
-      "ticker": "8031.T",
-      "shares": 800,
-      "cost_price": 3591,
-      "market": "JP"
+        "name": "8031 三井物產",
+        "ticker": "8031.T",
+        "shares": 800,
+        "cost_price": 3591,
+        "market": "JP"
     },
     {
-      "name": "Eli Lilly & Co",
-      "ticker": "LLY",
-      "shares": 22,
-      "cost_price": 900,
-      "market": "US"
+        "name": "Eli Lilly & Co",
+        "ticker": "LLY",
+        "shares": 22,
+        "cost_price": 900,
+        "market": "US"
     }
-  ],
-  "card_status": {
-    "cat": false,
-    "yu": false,
-    "fubon": false,
-    "ctbc": false,
-    "dbs": false
-  }
-}
+]
