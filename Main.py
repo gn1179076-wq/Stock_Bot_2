@@ -32,7 +32,7 @@ PORTFOLIO_FILE = "portfolio.json"
 def load_portfolio():
     try:
         with open(PORTFOLIO_FILE, "r", encoding="utf-8") as f:
-            return json.load(f) # 直接回傳陣列
+            return json.load(f)
     except FileNotFoundError:
         print(f"❌ 找不到持股檔案：{PORTFOLIO_FILE}")
         return[]
@@ -251,13 +251,12 @@ def get_stock_summary(report_url, git_branch="unknown_branch"):
 {loss_details}
 📋 <a href='{report_url}'>查看完整投資組合儀表板</a>
 --------------------------
-
-"\U0001F4B3 <b>信用卡繳款日提醒</b>\n"
-"國泰世華｜每月 2 日（自動扣繳）\n"
-"玉山信用卡｜每月 3～5 日\n"
-"台北富邦｜每月 9～12 日\n"
-"中國信託｜每月 28 日\n"
-"星展銀行｜請登入 DBS Card+ 確認"
+💳 信用卡繳款日提醒
+🏦 國泰世華｜每月 2 日（自動扣繳）
+🏦 玉山信用卡｜每月 3～5 日
+🏦 台北富邦｜每月 9～12 日
+🏦 中國信託｜每月 28 日
+🏦 星展銀行｜請登入 DBS Card+ 確認"""
 
     generate_html_report(html_rows, gold_usd, gold_display, rates, total_cost, total_value, profit_total, roi_total, current_time)
     return tg_msg
