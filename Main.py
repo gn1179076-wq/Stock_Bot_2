@@ -32,12 +32,13 @@ PORTFOLIO_FILE = "portfolio.json"
 def load_portfolio():
     try:
         with open(PORTFOLIO_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            # 現在改為回傳 "portfolio" 這個鍵對應的值
-            return data.get("portfolio", []) 
-    except Exception as e:
-        print(f"❌ 讀取持股檔案錯誤：{e}")
-        return []
+            return json.load(f) # 直接回傳陣列
+    except FileNotFoundError:
+        print(f"❌ 找不到持股檔案：{PORTFOLIO_FILE}")
+        return[]
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON 格式錯誤：{e}")
+        return[]
 
 # ==========================================
 # 2. Telegram 推播函式
