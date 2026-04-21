@@ -62,4 +62,14 @@
         "cost_price": 900,
         "market": "US"
     }
+    {
+        "portfolio": [...],
+        "card_status": {
+        "cat": false,
+        "yu": false,
+        "fubon": false,
+        "ctbc": false,
+        "dbs": false
+  }
+}
 ]
