@@ -67,6 +67,7 @@ const REPO="gn1179076-wq/Stock_Bot_2",BRANCH="Main";
 const FILE_PATH="home_assets.json",PORTFOLIO_PATH="portfolio.json";
 let assets=[],portfolio=[];
 
+// --- [新增] 信用卡管理區塊 ---
 const creditCards = [
     { id: 'cat', name: '國泰世華', date: '每月 2 日' },
     { id: 'yu', name: '玉山信用卡', date: '每月 3～5 日' },
@@ -91,7 +92,7 @@ function renderCards() {
 
 function toggleCard(id, checked) {
     localStorage.setItem('card_' + id, checked);
-    toast(checked ? '已標記為已扣款 ✅' : '已取消標記');
+    toast(checked ? '已標記：已扣款 ✅' : '已取消標記');
 }
 
 function resetCardStatus() {
@@ -101,12 +102,13 @@ function resetCardStatus() {
     toast('狀態已重置');
 }
 
+// 修改你原本的 switchTab，加入 'card' 判斷
 function switchTab(tab){
     const tabs = ['assets', 'portfolio', 'card'];
     document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active', tabs[i]===tab));
     document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('tab-'+tab).classList.add('active');
-    if(tab === 'card') renderCards();
+    if(tab === 'card') renderCards(); // 確保切換時會更新
 }
 
 // 這些函數保持你原本的邏輯，這裡省略內部實現以便閱讀，請保留你原始碼中的完整函數
