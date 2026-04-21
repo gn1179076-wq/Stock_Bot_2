@@ -249,7 +249,14 @@ def get_stock_summary(report_url, git_branch="unknown_branch"):
 --------------------------
 {'🟢 <b>持股虧損清單：</b>' if loss_details else '🎉 全部持股皆為正報酬！'}
 {loss_details}
-📋 <a href='{report_url}'>查看完整投資組合儀表板</a>"""
+📋 <a href='{report_url}'>查看完整投資組合儀表板</a>
+--------------------------
+💳 信用卡繳款日提醒
+🏦 國泰世華｜每月 2 日（自動扣繳）
+🏦 玉山信用卡｜每月 3～5 日
+🏦 台北富邦｜每月 9～12 日
+🏦 中國信託｜每月 28 日
+🏦 星展銀行｜請登入 DBS Card+ 確認"""
 
     generate_html_report(html_rows, gold_usd, gold_display, rates, total_cost, total_value, profit_total, roi_total, current_time)
     return tg_msg
