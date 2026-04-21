@@ -1,0 +1,4 @@
+  File "/home/runner/work/Stock_Bot_2/Stock_Bot_2/Main.py", line 264
+    💳 <b>信用卡繳款日提醒</b>
+    ^
+SyntaxError: invalid character '💳' (U+1F4B3)
