@@ -1,0 +1,4 @@
+  File "/home/runner/work/Stock_Bot_2/Stock_Bot_2/Main.py", line 269
+    <div class="header"><h1>📊 Fiona 資產日報</h1><div class="time">{c_time}</div></div>
+                            ^
+SyntaxError: invalid character '📊' (U+1F4CA)
