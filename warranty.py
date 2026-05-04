@@ -22,37 +22,14 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")  # ← 新增這行
 REPORT_PWD = os.getenv("REPORT_PWD")  # 解鎖密碼
 
 # --- 一般設定 (可以直接在這裡修改) ---
-NOTIFY_TARGET = "line"  # 👉 在此修改推播目標："telegram" / "line" / "both"
+NOTIFY_TARGET = "both"  # 👉 在此修改推播目標："telegram" / "line" / "both"
 REPORT_BASE_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/"
 ADMIN_URL = "https://gn1179076-wq.github.io/Stock_Bot_2/admin.html"
 ASSETS_FILE = "home_assets.json"
 
 # ==========================================
-# 2. 推播函式 (Telegram & LINE Bot API)
+# 2. 推播函式 (LINE Bot API)
 # ==========================================
-def push_tg_message(text):
-    if not TG_BOT_TOKEN or not TG_CHAT_ID:
-        print("❌ 錯誤：請在 GitHub Secrets 中設定 TG_BOT_TOKEN 與 TG_CHAT_ID")
-        return
-
-    url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TG_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
-    }
-
-    try:
-        res = requests.post(url, json=payload, timeout=15)
-        if res.status_code == 200:
-            print("✅ Telegram 訊息發送成功！")
-        else:
-            print(f"❌ Telegram 發送失敗 ({res.status_code}): {res.text}")
-    except Exception as e:
-        print(f"❌ Telegram 連線異常: {e}")
-
-
 def push_line_message(text):
     if not LINE_CHANNEL_ID or not LINE_CHANNEL_SECRET or not LINE_USER_ID:
         print("❌ 錯誤：找不到 LINE_CHANNEL_ID, LINE_CHANNEL_SECRET 或 LINE_USER_ID 環境變數")
@@ -398,9 +375,6 @@ if __name__ == "__main__":
         tg_msg = "\n".join(parts)
 
         # ── 開關控制 ──
-        if NOTIFY_TARGET in ("telegram", "both"):
-            push_tg_message(tg_msg)
-
         if NOTIFY_TARGET in ("line", "both"):
             if line_alerts:
                 line_msg = "🏠 Fiona 耗材更換提醒\n" + "\n".join(line_alerts)
@@ -408,5 +382,5 @@ if __name__ == "__main__":
             else:
                 print("ℹ️ 沒有耗材在一週內到期，略過 LINE 發送。")
 
-        if NOTIFY_TARGET in ("discord", "all"):  # ← 新增這段
+        if NOTIFY_TARGET in ("discord", "both"):  # ← 新增這段
             push_discord_message(tg_msg)
