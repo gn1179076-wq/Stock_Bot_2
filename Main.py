@@ -389,9 +389,7 @@ if __name__ == "__main__":
     msg = get_stock_summary(final_url, git_branch)
 
     # ── 開關控制 ──
-    if NOTIFY_TARGET in ("telegram", "both", "all"):
-        push_tg_message(msg)
-    if NOTIFY_TARGET in ("line", "both", "all"):
+    if NOTIFY_TARGET in ("line", "both"):
         push_line_message(msg)
-    if NOTIFY_TARGET in ("discord", "all"):          # 👈 新增這段
+    if NOTIFY_TARGET in ("discord", "both"):          # 👈 新增這段
         push_discord_message(msg)
