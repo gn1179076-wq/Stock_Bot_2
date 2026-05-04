@@ -87,8 +87,8 @@ def push_line_message(text):
         access_token = token_res.json().get("access_token")
 
         # 第二步：過濾掉 HTML 標籤 (因為 LINE 不支援 Telegram 的 HTML 標籤)
-        clean_text = re.sub('<.*?>', '', text)
-
+        clean_text = re.sub(r"<a href='([^']+)'>(.*?)</a>", r"\2: \1", text)
+        clean_text = re.sub(r'<[^>]+>', '', clean_text)
         # 第三步：發送訊息
         push_url = "https://api.line.me/v2/bot/message/push"
         headers = {
