@@ -54,5 +54,12 @@
         "shares": 22,
         "cost_price": 900,
         "market": "US"
+    },
+    {
+        "name": "INTEL",
+        "ticker": "INTC",
+        "shares": 158,
+        "cost_price": 118,
+        "market": "US"
     }
 ]
