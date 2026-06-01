@@ -114,5 +114,11 @@
         "purchase_date": "2026-04-19",
         "warranty_months": 3,
         "fee": "0 N.T"
+    },
+    {
+        "name": "[耗材] AirTag2",
+        "purchase_date": "2026-05-28",
+        "warranty_months": 12,
+        "fee": ""
     }
 ]
