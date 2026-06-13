@@ -125,5 +125,11 @@
         "name": "房間冷氣排水機",
         "purchase_date": "2026-06-06",
         "warranty_months": 36
+    },
+    {
+        "name": "[耗材] 冷氣機+洗衣機清洗",
+        "purchase_date": "2026-06-04",
+        "warranty_months": 18,
+        "fee": "7000"
     }
 ]
