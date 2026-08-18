@@ -54,5 +54,12 @@
         "shares": 22,
         "cost_price": 900,
         "market": "US"
+    },
+    {
+        "name": "SPCX",
+        "ticker": "SPCX",
+        "shares": 90,
+        "cost_price": 218,
+        "market": "US"
     }
 ]
