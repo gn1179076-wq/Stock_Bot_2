@@ -137,5 +137,11 @@
         "purchase_date": "2026-08-05",
         "warranty_months": 36,
         "receipt": "receipts/20260818_105646.jpg"
+    },
+    {
+        "name": "[訂閱] 中華電信華南信用卡扣款",
+        "purchase_date": "2026-08-18",
+        "warranty_months": 24,
+        "fee": "75"
     }
 ]
