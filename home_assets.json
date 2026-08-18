@@ -131,5 +131,11 @@
         "purchase_date": "2026-06-04",
         "warranty_months": 18,
         "fee": "7000"
+    },
+    {
+        "name": "Panasonic 洗衣機",
+        "purchase_date": "2026-08-05",
+        "warranty_months": 36,
+        "receipt": "receipts/20260818_105646.jpg"
     }
 ]
