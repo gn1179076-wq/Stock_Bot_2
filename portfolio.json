@@ -49,13 +49,6 @@
         "market": "JP"
     },
     {
-        "name": "Eli Lilly & Co",
-        "ticker": "LLY",
-        "shares": 22,
-        "cost_price": 900,
-        "market": "US"
-    },
-    {
         "name": "SPCX",
         "ticker": "SPCX",
         "shares": 90,
